@@ -1,7 +1,7 @@
 
 "use strict";
 
-const API_BASE_URL = "https://backend-one-gules-94.vercel.app";
+const API_BASE_URL = "https://catch-phish-theta.vercel.app";
 const API_URL = `${API_BASE_URL}/api/analyze`;
 
 const MAX_LENGTH = 10000;
