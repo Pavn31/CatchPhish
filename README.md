@@ -29,35 +29,40 @@ CatchPhish is a web-based phishing detection project designed to help users anal
 
 ## Project Team
 
-<p align="center">
-  <a href="https://github.com/Pavn31">
-    <img src="https://github.com/Pavn31.png?size=120" width="100" height="100" alt="Pavn31 profile picture" />
-    <br />
-    <strong>Pavn31</strong>
-  </a>
-  <br />
-  Project Developer
-</p>
-
-<p align="center">
-  <a href="https://github.com/Seema-patil24">
-    <img src="https://github.com/Seema-patil24.png?size=120" width="100" height="100" alt="Seema-patil24 profile picture" />
-    <br />
-    <strong>Seema-patil24</strong>
-  </a>
-  &nbsp;&nbsp;&nbsp;
-  <a href="https://github.com/Shetty22">
-    <img src="https://github.com/Shetty22.png?size=120" width="100" height="100" alt="Shetty22 profile picture" />
-    <br />
-    <strong>Shetty22</strong>
-  </a>
-  &nbsp;&nbsp;&nbsp;
-  <a href="https://github.com/skk-07">
-    <img src="https://github.com/skk-07.png?size=120" width="100" height="100" alt="skk-07 profile picture" />
-    <br />
-    <strong>skk-07</strong>
-  </a>
-</p>
+<table>
+  <tr>
+    <td align="center" width="25%">
+      <a href="https://github.com/Pavn31">
+        <img src="https://github.com/Pavn31.png" width="100" height="100" style="border-radius:50%" alt="Pavn31" />
+        <br />
+        <strong>Pavn31</strong>
+      </a>
+      <br />
+      <sub>Project Developer</sub>
+    </td>
+    <td align="center" width="25%">
+      <a href="https://github.com/Seema-patil24">
+        <img src="https://github.com/Seema-patil24.png" width="100" height="100" alt="Seema-patil24" />
+        <br />
+        <strong>Seema-patil24</strong>
+      </a>
+    </td>
+    <td align="center" width="25%">
+      <a href="https://github.com/Shetty22">
+        <img src="https://github.com/Shetty22.png" width="100" height="100" alt="Shetty22" />
+        <br />
+        <strong>Shetty22</strong>
+      </a>
+    </td>
+    <td align="center" width="25%">
+      <a href="https://github.com/skk-07">
+        <img src="https://github.com/skk-07.png" width="100" height="100" alt="skk-07" />
+        <br />
+        <strong>skk-07</strong>
+      </a>
+    </td>
+  </tr>
+</table>
 
 ## Contributing
 
