@@ -869,7 +869,7 @@ async function analyzeContent(content) {
 
         if (error instanceof TypeError) {
             throw new Error(
-                "Cannot connect to the API. Ensure the backend is running at http://127.0.0.1:8000 and that CORS allows this frontend origin."
+                "Cannot connect to the CatchPhish API. Please try again later."
             );
         }
 
