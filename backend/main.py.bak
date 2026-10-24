@@ -1,0 +1,420 @@
+
+import ipaddress
+import re
+from urllib.parse import urlsplit
+
+from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel, Field
+
+
+app = FastAPI(
+    title="CatchPhish API",
+    description="Rule-based phishing risk analysis",
+    version="1.0.0",
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://127.0.0.1:5500",
+        "http://localhost:5500",
+        "http://127.0.0.1:5501",
+        "http://localhost:5501",
+        "http://127.0.0.1:8000",
+        "http://localhost:8000",
+    ],
+    allow_credentials=False,
+    allow_methods=["GET", "POST"],
+    allow_headers=["Content-Type"],
+)
+
+
+class AnalyzeRequest(BaseModel):
+    content: str = Field(min_length=1, max_length=10000)
+
+
+def add_indicator(indicators, name, description, severity, points):
+    indicators.append(
+        {
+            "name": name,
+            "description": description,
+            "severity": severity,
+            "points": points,
+        }
+    )
+
+
+def extract_urls(text):
+    pattern = r"""(?i)\b(?:https?://|www\.)[^\s<>"']+"""
+    found = re.findall(pattern, text)
+
+    urls = []
+    for item in found:
+        cleaned = item.rstrip(".,!?;:)]}")
+        if cleaned and cleaned not in urls:
+            urls.append(cleaned)
+
+    # Also recognize plain domain-like strings.
+    domain_pattern = (
+        r"(?i)(?<![@\w.-])"
+        r"(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+"
+        r"[a-z]{2,63}"
+        r"(?::\d{1,5})?"
+        r"(?:/[^\s<>\"']*)?"
+    )
+
+    for item in re.findall(domain_pattern, text):
+        cleaned = item.rstrip(".,!?;:)]}")
+        if cleaned and cleaned not in urls:
+            urls.append(cleaned)
+
+    return urls[:30]
+
+
+def inspect_url(raw_url, indicators):
+    candidate = raw_url
+
+    if candidate.lower().startswith("www."):
+        candidate = "http://" + candidate
+
+    if not re.match(r"(?i)^https?://", candidate):
+        candidate = "http://" + candidate
+
+    try:
+        parsed = urlsplit(candidate)
+        hostname = parsed.hostname
+    except ValueError:
+        hostname = None
+        parsed = None
+
+    if not hostname:
+        add_indicator(
+            indicators,
+            "Malformed URL",
+            "The URL could not be parsed reliably.",
+            "HIGH",
+            25,
+        )
+        return
+
+    hostname = hostname.lower().rstrip(".")
+
+    if parsed and parsed.username is not None:
+        add_indicator(
+            indicators,
+            "URL contains user information",
+            "Text before the @ symbol can disguise the actual destination.",
+            "HIGH",
+            25,
+        )
+
+    try:
+        ipaddress.ip_address(hostname)
+        is_ip = True
+    except ValueError:
+        is_ip = False
+
+    if is_ip:
+        add_indicator(
+            indicators,
+            "IP address used as hostname",
+            "The link uses a raw IP address instead of a conventional domain.",
+            "MEDIUM",
+            20,
+        )
+
+    if hostname.startswith("xn--") or ".xn--" in hostname:
+        add_indicator(
+            indicators,
+            "Punycode domain",
+            "The domain uses encoded international characters that may disguise its appearance.",
+            "HIGH",
+            25,
+        )
+
+    if hostname.count(".") >= 4:
+        add_indicator(
+            indicators,
+            "Unusually nested subdomains",
+            "Multiple subdomains can make the actual destination harder to recognize.",
+            "MEDIUM",
+            12,
+        )
+
+    if len(hostname) > 50:
+        add_indicator(
+            indicators,
+            "Unusually long hostname",
+            "The hostname is unusually long and deserves closer inspection.",
+            "LOW",
+            8,
+        )
+
+    if parsed and parsed.scheme.lower() == "http":
+        add_indicator(
+            indicators,
+            "Unencrypted HTTP link",
+            "The URL does not use HTTPS. This alone does not prove phishing.",
+            "LOW",
+            5,
+        )
+
+    shorteners = {
+        "bit.ly",
+        "tinyurl.com",
+        "t.co",
+        "is.gd",
+        "cutt.ly",
+        "rebrand.ly",
+        "shorturl.at",
+        "rb.gy",
+        "ow.ly",
+        "buff.ly",
+    }
+
+    if hostname in shorteners:
+        add_indicator(
+            indicators,
+            "URL shortener",
+            "The destination is hidden behind a URL-shortening service.",
+            "MEDIUM",
+            15,
+        )
+
+    suspicious_terms = {
+        "login",
+        "verify",
+        "secure",
+        "account",
+        "update",
+        "password",
+        "wallet",
+        "signin",
+        "auth",
+        "confirm",
+    }
+
+    hostname_labels = set(re.split(r"[.-]", hostname))
+    matched_terms = sorted(hostname_labels.intersection(suspicious_terms))
+
+    if matched_terms:
+        add_indicator(
+            indicators,
+            "Sensitive-action wording in domain",
+            "The hostname contains terms commonly associated with account access or verification.",
+            "MEDIUM",
+            12,
+        )
+
+    if parsed:
+        query_and_path = (parsed.path + "?" + parsed.query).lower()
+
+        if len(parsed.query) > 150:
+            add_indicator(
+                indicators,
+                "Long URL query string",
+                "A long query string may contain tracking or redirect parameters.",
+                "LOW",
+                5,
+            )
+
+        if re.search(r"(?:redirect|return_url|continue|next|url)=", query_and_path):
+            add_indicator(
+                indicators,
+                "Potential redirect parameter",
+                "The URL contains a parameter that may control a redirect destination.",
+                "MEDIUM",
+                10,
+            )
+
+
+def analyze_content(content):
+    text = content.strip()
+    lowered = text.lower()
+    indicators = []
+
+    keyword_rules = [
+        (
+            "Urgent account threat",
+            r"\b(?:account.{0,30}(?:suspend|locked|blocked|disabled)|"
+            r"(?:suspend|lock|block|disable).{0,30}account)\b",
+            "The message threatens an account restriction to pressure the recipient.",
+            "HIGH",
+            20,
+        ),
+        (
+            "Credential request",
+            r"\b(?:enter|submit|confirm|verify|provide|share).{0,40}"
+            r"(?:password|passcode|login credentials|pin|otp|one[- ]time code)\b",
+            "The message asks for sensitive authentication information.",
+            "HIGH",
+            25,
+        ),
+        (
+            "Financial or payment pressure",
+            r"\b(?:urgent payment|wire transfer|payment required|"
+            r"unpaid invoice|failed payment|bank account blocked)\b",
+            "The content uses financial urgency that can appear in phishing attempts.",
+            "MEDIUM",
+            15,
+        ),
+        (
+            "Prize or reward lure",
+            r"\b(?:you have won|you've won|claim your prize|"
+            r"free gift|selected winner|claim reward)\b",
+            "The message uses a prize or reward to encourage interaction.",
+            "MEDIUM",
+            15,
+        ),
+        (
+            "Urgency language",
+            r"\b(?:act now|immediately|urgent|within 24 hours|"
+            r"expires today|final warning|immediate action|required action)\b",
+            "Urgent wording may be used to prevent careful verification.",
+            "MEDIUM",
+            12,
+        ),
+        (
+            "Suspicious verification request",
+            r"\b(?:verify your identity|verify your account|"
+            r"confirm your identity|unusual activity detected|"
+            r"security alert|account verification)\b",
+            "The message requests verification or claims suspicious account activity.",
+            "MEDIUM",
+            12,
+        ),
+        (
+            "Suspicious attachment",
+            r"\b(?:open the attachment|enable macros|"
+            r"download the attached file|attached invoice)\b",
+            "The message encourages opening an attachment that should be verified first.",
+            "MEDIUM",
+            12,
+        ),
+        (
+            "One-time code request",
+            r"\b(?:send|share|reply with|tell us).{0,25}"
+            r"(?:otp|one[- ]time password|verification code|security code)\b",
+            "The message asks the recipient to share a verification code.",
+            "HIGH",
+            25,
+        ),
+    ]
+
+    for name, pattern, description, severity, points in keyword_rules:
+        if re.search(pattern, lowered, re.DOTALL):
+            add_indicator(
+                indicators,
+                name,
+                description,
+                severity,
+                points,
+            )
+
+    urls = extract_urls(text)
+
+    if not urls and re.search(r"(?i)\b(?:https?://|www\.)", text):
+        add_indicator(
+            indicators,
+            "Unrecognized URL structure",
+            "A URL-like string was found but could not be extracted reliably.",
+            "LOW",
+            5,
+        )
+
+    for url in urls:
+        inspect_url(url, indicators)
+
+    if len(urls) >= 4:
+        add_indicator(
+            indicators,
+            "Multiple links",
+            "The content contains several URLs, which may warrant extra scrutiny.",
+            "LOW",
+            8,
+        )
+
+    # Avoid counting the same indicator more than once.
+    unique_indicators = []
+    seen = set()
+
+    for indicator in indicators:
+        key = indicator["name"]
+
+        if key not in seen:
+            seen.add(key)
+            unique_indicators.append(indicator)
+
+    # Each finding contributes points; the score is capped at 100.
+    score = min(
+        100,
+        sum(item["points"] for item in unique_indicators),
+    )
+
+    if score >= 75:
+        verdict = "High risk"
+        summary = (
+            "Multiple or serious phishing indicators were found. "
+            "Do not follow links or provide sensitive information without "
+            "independent verification."
+        )
+    elif score >= 45:
+        verdict = "Suspicious content"
+        summary = (
+            "Several risk indicators were found. Verify the sender and "
+            "destination using a trusted, independent channel."
+        )
+    elif score >= 20:
+        verdict = "Potential risk"
+        summary = (
+            "Some suspicious patterns were found. Review the findings "
+            "carefully before interacting with the content."
+        )
+    else:
+        verdict = "Low detected risk"
+        summary = (
+            "Few known phishing patterns were detected. This does not "
+            "establish that the content or destination is safe."
+        )
+
+    return {
+        "risk_score": score,
+        "verdict": verdict,
+        "summary": summary,
+        "indicators": unique_indicators,
+    }
+
+
+@app.get("/")
+def root():
+    return {
+        "name": "CatchPhish",
+        "status": "online",
+        "docs": "/docs",
+    }
+
+
+@app.get("/api/health")
+def health():
+    return {"status": "healthy"}
+
+
+@app.post("/api/analyze")
+def analyze(request: AnalyzeRequest):
+    content = request.content.strip()
+
+    if not content:
+        raise HTTPException(
+            status_code=422,
+            detail="Please provide text or a URL to analyze.",
+        )
+
+    try:
+        return analyze_content(content)
+    except Exception as exc:
+        # Keep internal exception details out of the API response.
+        raise HTTPException(
+            status_code=500,
+            detail="An internal analysis error occurred.",
+        ) from exc

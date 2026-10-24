@@ -1,0 +1,462 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#0b0b0d">
+  <meta name="description" content="CatchPhish — analyze suspicious URLs and messages for phishing indicators.">
+  <meta name="color-scheme" content="dark">
+  <title>CatchPhish</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <script src="script.js" defer></script>
+</head>
+
+<body>
+  <!-- LOGIN / SIGNUP -->
+  <main id="auth-screen" class="auth-screen">
+    <section class="auth-card" aria-labelledby="auth-title">
+      <a class="auth-brand" href="#" aria-label="CatchPhish">
+        <span class="auth-brand-icon" aria-hidden="true">
+          <svg viewBox="0 0 40 40" fill="none">
+            <path d="M20 3.5 34 9v10.5c0 8.4-5.6 13.6-14 17-8.4-3.4-14-8.6-14-17V9l14-5.5Z" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"/>
+            <path d="m13 20 4.3 4.3L27.5 14" stroke="currentColor" stroke-width="2.7" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </span>
+        <span class="brand-copy">
+          <span class="brand-name">catch<span>phish</span></span>
+          <span class="brand-caption">THREAT INTELLIGENCE</span>
+        </span>
+      </a>
+
+      <div class="auth-heading">
+        <span class="auth-eyebrow"><span class="status-dot"></span> SECURITY WORKSPACE</span>
+        <h1 id="auth-title">Welcome <span>back.</span></h1>
+        <p id="auth-subtitle">Sign in to access your phishing analysis dashboard.</p>
+      </div>
+
+      <div class="auth-tabs" role="tablist" aria-label="Authentication options">
+        <button type="button" id="login-tab" class="auth-tab active" role="tab" aria-selected="true" aria-controls="auth-form" data-mode="login">Sign in</button>
+        <button type="button" id="signup-tab" class="auth-tab" role="tab" aria-selected="false" aria-controls="auth-form" data-mode="signup">Create account</button>
+      </div>
+
+      <form id="auth-form" novalidate>
+        <div class="auth-field" id="name-field" hidden>
+          <label for="auth-name">FULL NAME</label>
+          <input type="text" id="auth-name" name="name" placeholder="Enter your name" autocomplete="name">
+        </div>
+
+        <div class="auth-field">
+          <label for="auth-email">EMAIL ADDRESS</label>
+          <input type="email" id="auth-email" name="email" placeholder="you@example.com" autocomplete="email" required>
+        </div>
+
+        <div class="auth-field">
+          <label for="auth-password">PASSWORD</label>
+          <div class="password-wrap">
+            <input type="password" id="auth-password" name="password" placeholder="Enter your password" autocomplete="current-password" minlength="8" required>
+            <button type="button" id="toggle-password" class="password-toggle" aria-label="Show password" aria-pressed="false">Show</button>
+          </div>
+        </div>
+
+        <div class="auth-field" id="confirm-field" hidden>
+          <label for="auth-confirm">CONFIRM PASSWORD</label>
+          <input type="password" id="auth-confirm" name="confirmPassword" placeholder="Re-enter your password" autocomplete="new-password" minlength="8">
+        </div>
+
+        <div class="auth-options" id="auth-options">
+          <label class="remember-option">
+            <input type="checkbox" id="remember-me" checked>
+            <span>Remember me</span>
+          </label>
+          <button type="button" id="forgot-password" class="text-button">Forgot password?</button>
+        </div>
+
+        <p id="auth-message" class="auth-message" role="alert" aria-live="polite" hidden></p>
+
+        <button type="submit" id="auth-submit" class="button button-primary auth-submit">
+          <span id="auth-submit-label">Sign in</span>
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+      </form>
+
+      <p class="auth-switch-copy" id="switch-prompt">
+        Don't have an account?
+        <button type="button" id="switch-mode" class="text-button">Create one</button>
+      </p>
+
+      <div class="auth-security-note">
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <rect x="5" y="10" width="14" height="11" rx="2" stroke="currentColor" stroke-width="1.5"/>
+          <path d="M8 10V7a4 4 0 0 1 8 0v3" stroke="currentColor" stroke-width="1.5"/>
+        </svg>
+        <span>CatchPhish security workspace</span>
+      </div>
+
+      <p class="auth-demo-note">College project demo: this login is not production-grade authentication.</p>
+    </section>
+  </main>
+
+  <!-- APPLICATION -->
+  <div class="app-shell" id="app-shell" hidden>
+    <aside class="sidebar" id="app-sidebar" aria-label="Main navigation">
+      <a class="brand" href="#dashboard" aria-label="CatchPhish home">
+        <span class="brand-icon" aria-hidden="true">
+          <svg viewBox="0 0 40 40" fill="none">
+            <path d="M20 3.5 34 9v10.5c0 8.4-5.6 13.6-14 17-8.4-3.4-14-8.6-14-17V9l14-5.5Z" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"/>
+            <path d="m13 20 4.3 4.3L27.5 14" stroke="currentColor" stroke-width="2.7" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </span>
+        <span class="brand-copy">
+          <span class="brand-name">catch<span>phish</span></span>
+          <span class="brand-caption">THREAT INTELLIGENCE</span>
+        </span>
+      </a>
+
+      <div class="sidebar-section">
+        <p class="section-label">WORKSPACE</p>
+
+        <a class="nav-item active" href="#dashboard" aria-current="page">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <rect x="3.5" y="3.5" width="7" height="7" rx="1.5"/>
+            <rect x="13.5" y="3.5" width="7" height="7" rx="1.5"/>
+            <rect x="3.5" y="13.5" width="7" height="7" rx="1.5"/>
+            <rect x="13.5" y="13.5" width="7" height="7" rx="1.5"/>
+          </svg>
+          Overview
+        </a>
+
+        <a class="nav-item" href="#analyzer">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <circle cx="10.8" cy="10.8" r="6.8"/>
+            <path d="m16 16 4.5 4.5M8.2 10.8h5.2M10.8 8.2v5.2"/>
+          </svg>
+          Threat analyzer
+        </a>
+
+        <a class="nav-item" href="#results">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M5 3.5h9l5 5v12H5v-17Z" stroke-linejoin="round"/>
+            <path d="M14 3.5v5h5M8.5 13h7M8.5 16.5h7"/>
+          </svg>
+          Analysis report
+        </a>
+      </div>
+
+      <div class="sidebar-section">
+        <p class="section-label">SECURITY</p>
+        <div class="sidebar-info">
+          <span class="status-dot"></span>
+          <span>Detection engine</span>
+          <span class="mini-status">API</span>
+        </div>
+        <div class="sidebar-info">
+          <span class="status-dot status-dot-muted"></span>
+          <span>Live monitoring</span>
+          <span class="mini-status">LOCAL</span>
+        </div>
+      </div>
+
+      <div class="sidebar-bottom">
+        <div class="sidebar-callout">
+          <div class="callout-icon">
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M12 3 3.5 19h17L12 3Z" stroke-linejoin="round"/>
+              <path d="M12 9v4M12 16.5v.1"/>
+            </svg>
+          </div>
+          <p class="callout-title">Stay alert.</p>
+          <p class="callout-text">Never enter credentials on a site you haven't verified.</p>
+        </div>
+
+        <div class="sidebar-footer">
+          <span>CatchPhish</span>
+          <span class="version">v1.0.0</span>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Mobile navigation toggle; styling and behavior are handled in CSS/JS -->
+    <button type="button" id="mobile-menu-toggle" class="mobile-menu-toggle" aria-label="Open navigation menu" aria-controls="app-sidebar" aria-expanded="false">
+      <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path d="M4 6h16M4 12h16M4 18h16" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+      </svg>
+      <span>Menu</span>
+    </button>
+
+    <main class="main-content" id="dashboard">
+      <header class="topbar">
+        <div class="breadcrumb">
+          <span>Workspace</span>
+          <span class="breadcrumb-separator">/</span>
+          <span class="breadcrumb-current">Threat analysis</span>
+        </div>
+
+        <div class="topbar-right">
+          <span class="environment-tag">
+            <span class="status-dot"></span>
+            LOCAL ENVIRONMENT
+          </span>
+          <div class="avatar" id="user-avatar" aria-label="Signed-in user">CP</div>
+          <span id="user-display" class="user-display">Analyst</span>
+          <button type="button" id="logout-btn" class="logout-button">Log out</button>
+        </div>
+      </header>
+
+      <div class="content-wrap">
+        <section class="page-heading" aria-labelledby="page-title">
+          <div>
+            <div class="eyebrow"><span class="eyebrow-line"></span> SECURITY OPERATIONS</div>
+            <h1 id="page-title">Threat <span>analysis.</span></h1>
+            <p class="page-description">Inspect suspicious URLs and messages. Identify phishing signals before they become a threat.</p>
+          </div>
+
+          <div class="heading-meta">
+            <span class="meta-label">SYSTEM STATUS</span>
+            <span class="system-status"><span class="status-dot"></span> Ready for analysis</span>
+          </div>
+        </section>
+
+        <section class="metrics-grid" aria-label="Analysis overview">
+          <article class="metric-card">
+            <div class="metric-top">
+              <span class="metric-label">ANALYSIS ENGINE</span>
+              <span class="metric-icon">
+                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <path d="m12 3 8 4.5v9L12 21l-8-4.5v-9L12 3Z" stroke-linejoin="round"/>
+                  <path d="m8.5 12 2.3 2.3 4.8-5" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </span>
+            </div>
+            <div class="metric-value">API<span class="metric-unit">/ REST</span></div>
+            <div class="metric-foot"><span class="status-dot"></span> Local endpoint configured</div>
+          </article>
+
+          <article class="metric-card">
+            <div class="metric-top">
+              <span class="metric-label">INPUT CAPACITY</span>
+              <span class="metric-icon">
+                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <path d="M5 4h14v16H5z" stroke-linejoin="round"/>
+                  <path d="M8 8h8M8 12h8M8 16h5" stroke-linecap="round"/>
+                </svg>
+              </span>
+            </div>
+            <div class="metric-value">10,000<span class="metric-unit"> chars</span></div>
+            <div class="metric-foot">URL, message or email content</div>
+          </article>
+
+          <article class="metric-card">
+            <div class="metric-top">
+              <span class="metric-label">DETECTION MODE</span>
+              <span class="metric-icon">
+                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <circle cx="12" cy="12" r="8.5"/>
+                  <path d="M12 7v5l3.5 2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </span>
+            </div>
+            <div class="metric-value">On <span class="metric-unit">demand</span></div>
+            <div class="metric-foot">Runs when you submit content</div>
+          </article>
+        </section>
+
+        <!-- THREAT ANALYZER -->
+        <section class="analyzer-section" id="analyzer" aria-labelledby="analyzer-title">
+          <div class="section-heading">
+            <div>
+              <span class="section-index">01</span>
+              <h2 id="analyzer-title">Threat analyzer</h2>
+            </div>
+            <span class="section-note">INPUT / INSPECTION</span>
+          </div>
+
+          <div class="analyzer-card">
+            <div class="analyzer-card-top">
+              <div class="input-heading">
+                <span class="input-heading-icon">
+                  <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <path d="M10 13.5a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1.7 1.7"/>
+                    <path d="M14 10.5a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1.7-1.7"/>
+                  </svg>
+                </span>
+                <div>
+                  <h3>Inspect a suspicious link or message</h3>
+                  <p>Submit content for server-side analysis.</p>
+                </div>
+              </div>
+
+              <span class="private-tag">
+                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <rect x="5" y="10" width="14" height="11" rx="2"/>
+                  <path d="M8 10V7a4 4 0 0 1 8 0v3"/>
+                </svg>
+                LOCAL REQUEST
+              </span>
+            </div>
+
+            <form id="analyze-form">
+              <label for="suspect-input" class="field-label">CONTENT TO ANALYZE</label>
+
+              <div class="textarea-wrap">
+                <textarea id="suspect-input" name="content" maxlength="10000" rows="7" placeholder="Paste a suspicious URL, email, SMS, or message here..." aria-describedby="input-help char-count" required></textarea>
+                <div class="textarea-corner" aria-hidden="true">CP / INPUT</div>
+              </div>
+
+              <div class="input-meta">
+                <span id="input-help">Do not paste passwords, authentication codes, or other sensitive information.</span>
+                <span id="char-count">0 / 10,000</span>
+              </div>
+
+              <div class="example-row">
+                <span class="example-label">INPUT TYPE</span>
+                <span class="type-chip">URL</span>
+                <span class="type-chip">EMAIL</span>
+                <span class="type-chip">SMS</span>
+                <span class="type-chip">MESSAGE</span>
+              </div>
+
+              <div id="error-message" class="error-message" role="alert" aria-live="polite" hidden></div>
+
+              <div class="form-actions">
+                <button type="button" id="clear-btn" class="button button-secondary">
+                  <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <path d="M4 7h16M10 11v6M14 11v6M6.5 7l1 13h9l1-13M9 7V4h6v3" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                  Clear input
+                </button>
+
+                <button type="submit" id="analyze-btn" class="button button-primary">
+                  <span class="button-label">Analyze threat</span>
+                  <svg class="button-arrow" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <path d="M5 12h14M13 6l6 6-6 6" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                </button>
+              </div>
+            </form>
+          </div>
+        </section>
+
+        <!-- ANALYSIS REPORT -->
+        <section class="results-section" id="results" aria-labelledby="results-title">
+          <div class="section-heading">
+            <div>
+              <span class="section-index">02</span>
+              <h2 id="results-title">Analysis report</h2>
+            </div>
+            <span class="section-note">RESULTS / FINDINGS</span>
+          </div>
+
+          <div id="results-placeholder" class="results-placeholder">
+            <div class="placeholder-graphic" aria-hidden="true">
+              <svg viewBox="0 0 64 64" fill="none">
+                <path d="M32 7 52 15v15c0 12-8 20-20 26C20 50 12 42 12 30V15l20-8Z" stroke="currentColor" stroke-width="1.5"/>
+                <circle cx="32" cy="29" r="8" stroke="currentColor" stroke-width="1.5"/>
+                <path d="m38 35 6 6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+              </svg>
+            </div>
+            <h3>Awaiting analysis</h3>
+            <p>Submit content above to generate a threat assessment and view the detected indicators.</p>
+            <span class="placeholder-code">NO REPORT GENERATED</span>
+          </div>
+
+          <div id="results-content" hidden>
+            <div class="result-overview">
+              <article class="result-card risk-card">
+                <div class="result-card-heading">
+                  <span class="metric-label">THREAT SCORE</span>
+                  <span class="report-live"><span class="status-dot"></span> REPORT READY</span>
+                </div>
+
+                <div class="score-layout">
+                  <div class="score-number-wrap">
+                    <span id="risk-score" class="score-number">0</span>
+                    <span class="score-out-of">/ 100</span>
+                  </div>
+                  <span id="risk-label" class="risk-badge risk-unknown">PENDING</span>
+                </div>
+
+                <div id="score-track" class="score-track" role="progressbar" aria-label="Threat score" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+                  <div id="score-bar" class="score-bar"></div>
+                </div>
+
+                <div class="score-scale">
+                  <span>LOW</span>
+                  <span>MODERATE</span>
+                  <span>HIGH</span>
+                </div>
+
+                <p id="result-description" class="result-description">No assessment available yet.</p>
+              </article>
+
+              <article class="result-card verdict-card">
+                <div class="result-card-heading">
+                  <span class="metric-label">DETECTION VERDICT</span>
+                  <span class="verdict-symbol" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none">
+                      <path d="M12 3 20 7.5v9L12 21l-8-4.5v-9L12 3Z" stroke-linejoin="round"/>
+                      <path d="M12 8v4M12 16h.01" stroke-linecap="round"/>
+                    </svg>
+                  </span>
+                </div>
+
+                <div id="result-status" class="verdict-status">AWAITING SCAN</div>
+                <h3 id="result-title">No content analyzed</h3>
+                <p id="impact-description">Run an analysis to see the assessment summary.</p>
+
+                <div class="verdict-footer">
+                  <span>INDICATORS FOUND</span>
+                  <span id="indicator-count" class="indicator-count">0</span>
+                </div>
+              </article>
+            </div>
+
+            <article class="result-card indicators-card">
+              <div class="result-card-heading">
+                <div>
+                  <span class="metric-label">DETECTION DETAILS</span>
+                  <h3>Indicators of compromise</h3>
+                </div>
+                <span id="indicator-summary" class="indicator-summary">0 findings</span>
+              </div>
+
+              <div id="indicators-list" class="indicators-list">
+                <div class="empty-indicators">No indicators reported by the API.</div>
+              </div>
+            </article>
+
+            <article class="result-card impact-card">
+              <div class="result-card-heading">
+                <div>
+                  <span class="metric-label">RISK CONTEXT</span>
+                  <h3>Potential impact</h3>
+                </div>
+                <span id="impact-level" class="impact-level">UNASSESSED</span>
+              </div>
+
+              <p id="impact-summary">Potential impact will be displayed after analysis.</p>
+              <div id="impact-tags" class="impact-tags"></div>
+            </article>
+
+            <div class="report-footer">
+              <span>REPORT GENERATED LOCALLY</span>
+              <span id="report-timestamp">Timestamp unavailable</span>
+            </div>
+          </div>
+        </section>
+
+        <footer class="main-footer">
+          <span><span class="footer-mark">C</span> CATCHPHISH <span class="footer-divider">/</span> SECURITY ANALYSIS</span>
+          <span>USE AS A SIGNAL, NOT A GUARANTEE.</span>
+        </footer>
+      </div>
+    </main>
+  </div>
+</body>
+</html>
