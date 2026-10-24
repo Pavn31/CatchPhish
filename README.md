@@ -38,7 +38,6 @@ CatchPhish is a web-based phishing detection project designed to help users anal
         <strong>Pavn31</strong>
       </a>
       <br />
-      <sub>Project Developer</sub>
     </td>
     <td align="center" width="25%">
       <a href="https://github.com/Seema-patil24">
