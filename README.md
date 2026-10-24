@@ -1,36 +1,41 @@
-# CatchPhish
-
-<p align="center">
-  <img src="https://img.shields.io/badge/CatchPhish-Phishing%20Detection-8b5cf6?style=for-the-badge&logo=shield&logoColor=white" alt="CatchPhish"/>
-  <img src="https://img.shields.io/badge/Status-Live-22c55e?style=for-the-badge" alt="Live"/>
+ <p align="center">
+  <img src="frontend/assets/Icon.png" width="100" alt="CatchPhish Icon" />
 </p>
+
+<h1 align="center">CatchPhish</h1>
 
 <p align="center">
   <strong>Detect threats. Stay aware. Browse safely.</strong>
-  <br/>
-  A web-based phishing detection tool designed to help identify suspicious URLs and messages.
-  <br/><br/>
-  <a href="https://catchphish.pavn31.dpdns.org/"><strong>Visit Live Website →</strong></a>
+  <br />
+  A minimal phishing detection tool for suspicious URLs and messages.
+</p>
+
+<p align="center">
+  <a href="https://catchphish.pavn31.dpdns.org/">
+    <img src="https://img.shields.io/badge/LIVE%20DEMO-8B5CF6?style=flat-square&logo=vercel&logoColor=white" alt="Live Demo" />
+  </a>
+  <a href="https://github.com/Pavn31/CatchPhish">
+    <img src="https://img.shields.io/badge/GITHUB-18181B?style=flat-square&logo=github&logoColor=white" alt="GitHub" />
+  </a>
+  <img src="https://img.shields.io/badge/STATUS-Live-22C55E?style=flat-square" alt="Project Status" />
 </p>
 
 ---
 
 ## About
 
-**CatchPhish** is a phishing detection web application that analyzes URLs and suspicious messages to help users recognize potential online threats.
+CatchPhish is a web-based phishing detection application that analyzes suspicious URLs and messages to help users identify potential online threats.
 
-It evaluates suspicious indicators and provides a risk score, verdict, and analysis summary to support safer browsing decisions.
+It evaluates suspicious indicators and generates a risk score, verdict, and analysis summary to support safer digital experiences.
 
 ## Features
 
-- **URL Analysis** — Analyze URLs for suspicious patterns.
-- **Message Analysis** — Check suspicious messages for potential phishing indicators.
-- **Risk Scoring** — Get a risk score and verdict based on detected indicators.
-- **Threat Indicators** — Understand the signals that contribute to the analysis.
+- **URL Analysis** — Detect suspicious URL patterns.
+- **Message Analysis** — Analyze potentially malicious emails, SMS messages, and text.
+- **Risk Scoring** — Generate a score and verdict based on detected indicators.
+- **Threat Indicators** — Display signals identified during analysis.
 - **User Authentication** — Sign-up and login functionality.
-- **Web Interface** — A simple interface for analyzing potential threats.
-
-> CatchPhish provides heuristic-based analysis. Results are indicative and should not be treated as a guarantee that a URL or message is safe.
+- **Dark Interface** — A clean, minimal security dashboard.
 
 ## Tech Stack
 
@@ -39,55 +44,49 @@ It evaluates suspicious indicators and provides a risk score, verdict, and analy
 | Frontend | HTML, CSS, JavaScript |
 | Backend | Python, FastAPI |
 | Database | SQLite |
-| Authentication | Session-based authentication |
+| Authentication | Session-based |
 | Deployment | Vercel |
 
 ## Live Demo
 
-**Website:** https://catchphish.pavn31.dpdns.org/
+<p align="center">
+  <a href="https://catchphish.pavn31.dpdns.org/">
+    <strong>↗ Open CatchPhish</strong>
+  </a>
+</p>
 
-Open the live application and test it with a URL or message you want to analyze. Avoid submitting sensitive or private information.
+Test the application with a URL or message you want to analyze. Do not submit passwords, authentication codes, or other sensitive information.
 
 ## Team
 
-Meet the people behind CatchPhish.
+<p align="center">
+  <a href="https://github.com/Pavn31">
+    <img src="https://github.com/Pavn31.png" width="80" alt="Pavn31" />
+    <br /><strong>Pavn31</strong>
+  </a>
+  <br />Project Contributor
+</p>
 
-<table>
-  <tr>
-    <td align="center">
-      <a href="https://github.com/Pavn31">
-        <img src="https://github.com/Pavn31.png" width="90" alt="Pavn31's GitHub avatar"/>
-        <br/><strong>Pavn31</strong>
-      </a>
-      <br/>Project Contributor
-    </td>
-    <td align="center">
-      <a href="https://github.com/Seema-patil24">
-        <img src="https://github.com/Seema-patil24.png" width="90" alt="Seema-patil24's GitHub avatar"/>
-        <br/><strong>Seema Patil</strong>
-      </a>
-      <br/>Project Contributor
-    </td>
-    <td align="center">
-      <a href="https://github.com/Shetty22">
-        <img src="https://github.com/Shetty22.png" width="90" alt="Shetty22's GitHub avatar"/>
-        <br/><strong>Shetty22</strong>
-      </a>
-      <br/>Project Contributor
-    </td>
-    <td align="center">
-      <a href="https://github.com/skk-07">
-        <img src="https://github.com/skk-07.png" width="90" alt="skk-07's GitHub avatar"/>
-        <br/><strong>skk-07</strong>
-      </a>
-      <br/>Project Contributor
-    </td>
-  </tr>
-</table>
+<p align="center">
+  <a href="https://github.com/Seema-patil24">
+    <img src="https://github.com/Seema-patil24.png" width="80" alt="Seema Patil" />
+    <br /><strong>Seema Patil</strong>
+  </a>
+  &nbsp;&nbsp;&nbsp;
+  <a href="https://github.com/Shetty22">
+    <img src="https://github.com/Shetty22.png" width="80" alt="Shetty22" />
+    <br /><strong>Shetty22</strong>
+  </a>
+  &nbsp;&nbsp;&nbsp;
+  <a href="https://github.com/skk-07">
+    <img src="https://github.com/skk-07.png" width="80" alt="skk-07" />
+    <br /><strong>skk-07</strong>
+  </a>
+</p>
 
 ### Contributions
 
-Our team collaborates on developing, improving, and maintaining CatchPhish. Contributions may include application development, detection logic, interface improvements, testing, and documentation.
+Our team works collaboratively on application development, phishing detection logic, interface design, testing, and documentation.
 
 ## Run Locally
 
@@ -98,21 +97,23 @@ git clone https://github.com/Pavn31/CatchPhish.git
 cd CatchPhish
 ```
 
-### 2. Start the backend
+### 2. Set up the backend
 
 ```bash
 cd backend
 python -m venv .venv
 ```
 
-Activate the environment:
+Activate the virtual environment.
 
 **Linux / macOS**
+
 ```bash
 source .venv/bin/activate
 ```
 
 **Windows**
+
 ```powershell
 .venv\Scripts\activate
 ```
@@ -124,34 +125,36 @@ pip install -r requirements.txt
 uvicorn main:app --reload
 ```
 
-The backend API should be available at `http://127.0.0.1:8000`.
+Backend URL: `http://127.0.0.1:8000`
 
 API documentation: `http://127.0.0.1:8000/docs`
 
-### 3. Open the frontend
+### 3. Launch the frontend
 
 Open `frontend/index.html` using a local development server, such as VS Code Live Server.
 
-Make sure the frontend API configuration points to your local backend.
+Ensure the frontend's API configuration points to the backend URL.
 
 ## Security Notice
 
-- Do not rely exclusively on automated phishing detection.
-- Never enter passwords, banking details, or other sensitive information into suspicious websites.
-- Do not commit secrets, credentials, or private user data to the repository.
+- Detection results are indicative, not a guarantee that a URL or message is safe.
+- Avoid opening suspicious links or entering credentials on unverified websites.
+- Never commit passwords, secret keys, or private user data to the repository.
 
 ## License
 
-No license has been specified yet. All rights are reserved by default unless a license is added to this repository.
+No license has been specified. All rights are reserved by default until a license is added.
 
 ---
 
 <p align="center">
+  <img src="frontend/assets/Icon.png" width="36" alt="CatchPhish" />
+  <br /><br />
   <strong>CatchPhish</strong>
-  <br/>
-  Built to promote safer digital experiences.
-  <br/><br/>
-  <a href="https://github.com/Pavn31/CatchPhish">GitHub Repository</a>
+  <br />
+  <sub>Built for a safer digital world.</sub>
+  <br /><br />
+  <a href="https://catchphish.pavn31.dpdns.org/">Website</a>
   ·
-  <a href="https://catchphish.pavn31.dpdns.org/">Live Demo</a>
+  <a href="https://github.com/Pavn31/CatchPhish">Repository</a>
 </p>
