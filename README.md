@@ -5,7 +5,7 @@
 CatchPhish is a web-based phishing detection project designed to help users analyze suspicious URLs and identify potential phishing threats.
 
 <p align="center">
-  <a href="https://catchphish.pavn31.dpdns.org/">
+  <a href="https://catchphish-front.onrender.com/">
     <strong>Live Website →</strong>
   </a>
 </p>
@@ -41,21 +41,21 @@ CatchPhish is a web-based phishing detection project designed to help users anal
     </td>
     <td align="center" width="25%">
       <a href="https://github.com/Seema-patil24">
-        <img src="https://github.com/Seema-patil24.png" width="100" height="100" alt="Seema-patil24" />
+        <img src="https://github.com/Seema-patil24.png" width="100" height="100" style="border-radius:50%" alt="Seema-patil24" />
         <br />
         <strong>Seema-patil24</strong>
       </a>
     </td>
     <td align="center" width="25%">
       <a href="https://github.com/Shetty22">
-        <img src="https://github.com/Shetty22.png" width="100" height="100" alt="Shetty22" />
+        <img src="https://github.com/Shetty22.png" width="100" height="100"  style="border-radius:50%" alt="Shetty22" />
         <br />
         <strong>Shetty22</strong>
       </a>
     </td>
     <td align="center" width="25%">
       <a href="https://github.com/skk-07">
-        <img src="https://github.com/skk-07.png" width="100" height="100" alt="skk-07" />
+        <img src="https://github.com/skk-07.png" width="100" height="100"  style="border-radius:50%" alt="skk-07" />
         <br />
         <strong>skk-07</strong>
       </a>
