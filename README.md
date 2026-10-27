@@ -69,7 +69,7 @@ Contributions, suggestions, and improvements are welcome. Visit the team members
 
 ## Links
 
-- **Live Website:** https://catchphish.pavn31.dpdns.org/
+- **Live Website:** https://catchphish-front.onrender.com/
 - **Frontend Deployment:** https://catchphish-front.onrender.com/
 - **Backend API:** https://catchphish-bxab.onrender.com/
 - **Repository:** https://github.com/Pavn31/CatchPhish
