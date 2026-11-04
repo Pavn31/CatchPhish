@@ -1,12 +1,13 @@
+
 # CatchPhish
 
-**Detect phishing. Stay protected.**
+### Detect phishing. Stay protected.
 
-CatchPhish is a web-based phishing detection project designed to help users analyze suspicious URLs and identify potential phishing threats.
+CatchPhish is a web-based phishing detection platform designed to help users analyze suspicious URLs and messages, identify potential phishing threats, and understand security risks through simple explanations.
 
 <p align="center">
   <a href="https://catchphish-front.onrender.com/">
-    <strong>Live Website →</strong>
+    <strong>Visit CatchPhish →</strong>
   </a>
 </p>
 
@@ -14,10 +15,13 @@ CatchPhish is a web-based phishing detection project designed to help users anal
 
 ## Features
 
-- Analyze URLs for potential phishing threats.
-- View analysis results and risk assessments.
-- Simple, responsive web interface.
-- Online frontend and backend deployment.
+- **Phishing Detection** – Analyze suspicious URLs and messages for potential phishing threats.
+- **Risk Assessment** – View risk scores and threat classifications.
+- **Detection Details** – Understand the suspicious indicators identified during analysis.
+- **Plain-Language Explanations** – Understand what is happening, how it could affect you, and what actions to take.
+- **Potential Impact** – Review possible consequences of suspicious content.
+- **Responsive Interface** – Access the platform through a simple, responsive web interface.
+- **Online Deployment** – Frontend and backend hosted on Render.
 
 ## Tech Stack
 
@@ -25,6 +29,7 @@ CatchPhish is a web-based phishing detection project designed to help users anal
 |---|---|
 | Frontend | HTML, CSS, JavaScript |
 | Backend | Python, FastAPI |
+| API Communication | REST API |
 | Deployment | Render |
 
 ## Project Team
@@ -33,29 +38,28 @@ CatchPhish is a web-based phishing detection project designed to help users anal
   <tr>
     <td align="center" width="25%">
       <a href="https://github.com/Pavn31">
-        <img src="https://github.com/Pavn31.png" width="100" height="100" style="border-radius:50%" alt="Pavn31" />
+        <img src="https://github.com/Pavn31.png" width="100" height="100" alt="Pavn31" />
         <br />
         <strong>Pavn31</strong>
       </a>
-      <br />
     </td>
     <td align="center" width="25%">
       <a href="https://github.com/Seema-patil24">
-        <img src="https://github.com/Seema-patil24.png" width="100" height="100" style="border-radius:50%" alt="Seema-patil24" />
+        <img src="https://github.com/Seema-patil24.png" width="100" height="100" alt="Seema-patil24" />
         <br />
         <strong>Seema-patil24</strong>
       </a>
     </td>
     <td align="center" width="25%">
       <a href="https://github.com/Shetty22">
-        <img src="https://github.com/Shetty22.png" width="100" height="100"  style="border-radius:50%" alt="Shetty22" />
+        <img src="https://github.com/Shetty22.png" width="100" height="100" alt="Shetty22" />
         <br />
         <strong>Shetty22</strong>
       </a>
     </td>
     <td align="center" width="25%">
       <a href="https://github.com/skk-07">
-        <img src="https://github.com/skk-07.png" width="100" height="100"  style="border-radius:50%" alt="skk-07" />
+        <img src="https://github.com/skk-07.png" width="100" height="100" alt="skk-07" />
         <br />
         <strong>skk-07</strong>
       </a>
@@ -63,19 +67,24 @@ CatchPhish is a web-based phishing detection project designed to help users anal
   </tr>
 </table>
 
+## Live Deployment
+
+| Service | Link |
+|---|---|
+| Live Website | [CatchPhish](https://catchphish.pavn31.dpdns.org/) |
+| Frontend | [Render Frontend](https://catchphish-front.onrender.com/) |
+| Backend API | [Render Backend](https://catchphish-bxab.onrender.com/) |
+
+## Repository
+
+[GitHub – Pavn31/CatchPhish](https://github.com/Pavn31/CatchPhish)
+
 ## Contributing
 
-Contributions, suggestions, and improvements are welcome. Visit the team members' GitHub profiles linked above to explore their work.
-
-## Links
-
-- **Live Website:** https://catchphish-front.onrender.com/
-- **Frontend Deployment:** https://catchphish-front.onrender.com/
-- **Backend API:** https://catchphish-bxab.onrender.com/
-- **Repository:** https://github.com/Pavn31/CatchPhish
+Contributions, suggestions, and improvements are welcome. Feel free to explore the project and connect with the team members through their GitHub profiles.
 
 ---
 
 <p align="center">
-  Built by the CatchPhish team.
+  <strong>Built by the CatchPhish team.</strong>
 </p>

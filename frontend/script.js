@@ -1,70 +1,114 @@
-
 "use strict";
+
+/* =========================================================
+   CONFIGURATION
+   ========================================================= */
 
 const API_BASE_URL = "https://catchphish-bxab.onrender.com";
 const API_URL = `${API_BASE_URL}/api/analyze`;
 
 const MAX_LENGTH = 10000;
+const REQUEST_TIMEOUT = 30000;
 
 let isAnalyzing = false;
 let authMode = "login";
 
-// DOM ELEMENTS
+
+/* =========================================================
+   DOM ELEMENTS
+   ========================================================= */
+
+// Authentication
 const authScreen = document.getElementById("auth-screen");
 const appShell = document.getElementById("app-shell");
 const authForm = document.getElementById("auth-form");
+
 const authTitle = document.getElementById("auth-title");
 const authSubtitle = document.getElementById("auth-subtitle");
+
 const authName = document.getElementById("auth-name");
 const authEmail = document.getElementById("auth-email");
 const authPassword = document.getElementById("auth-password");
 const authConfirm = document.getElementById("auth-confirm");
+
 const nameField = document.getElementById("name-field");
 const confirmField = document.getElementById("confirm-field");
+
 const authMessage = document.getElementById("auth-message");
 const authSubmitLabel = document.getElementById("auth-submit-label");
+
 const loginTab = document.getElementById("login-tab");
 const signupTab = document.getElementById("signup-tab");
+
 const switchPrompt = document.getElementById("switch-prompt");
 const switchMode = document.getElementById("switch-mode");
+
 const forgotPassword = document.getElementById("forgot-password");
 const togglePassword = document.getElementById("toggle-password");
 const rememberMe = document.getElementById("remember-me");
 
+// User
 const userAvatar = document.getElementById("user-avatar");
 const userDisplay = document.getElementById("user-display");
 const logoutBtn = document.getElementById("logout-btn");
 
+// Analyzer
 const form = document.getElementById("analyze-form");
 const input = document.getElementById("suspect-input");
+
 const analyzeBtn = document.getElementById("analyze-btn");
 const clearBtn = document.getElementById("clear-btn");
+
 const charCount = document.getElementById("char-count");
 const errorMessage = document.getElementById("error-message");
 
+// Results
 const resultsPlaceholder = document.getElementById("results-placeholder");
 const resultsContent = document.getElementById("results-content");
+
 const riskScore = document.getElementById("risk-score");
 const scoreBar = document.getElementById("score-bar");
 const scoreTrack = document.getElementById("score-track");
+
 const riskLabel = document.getElementById("risk-label");
+
 const resultStatus = document.getElementById("result-status");
 const resultTitle = document.getElementById("result-title");
 const resultDescription = document.getElementById("result-description");
+
 const indicatorCount = document.getElementById("indicator-count");
 const indicatorSummary = document.getElementById("indicator-summary");
 const indicatorsList = document.getElementById("indicators-list");
+
 const impactDescription = document.getElementById("impact-description");
 const impactSummary = document.getElementById("impact-summary");
 const impactTags = document.getElementById("impact-tags");
 const impactLevel = document.getElementById("impact-level");
+
+// Plain-language explanation
+const simpleExplanation = document.getElementById("simple-explanation");
+const simpleImpact = document.getElementById("simple-impact");
+const simpleAdvice = document.getElementById("simple-advice");
+
 const reportTimestamp = document.getElementById("report-timestamp");
 
-// STORAGE KEYS
+// Mobile navigation
+const mobileMenuToggle = document.getElementById("mobile-menu-toggle");
+const appSidebar = document.getElementById("app-sidebar");
+
+
+/* =========================================================
+   STORAGE KEYS
+   ========================================================= */
+
 const ACCOUNT_KEY = "catchphish_demo_account";
 const SESSION_KEY = "catchphish_session";
 
-// AUTHENTICATION
+
+/* =========================================================
+   AUTHENTICATION HELPERS
+   ========================================================= */
+
 function showAuthMessage(message, type = "error") {
     if (!authMessage) return;
 
@@ -92,9 +136,13 @@ function getSavedAccount() {
 function getSession() {
     try {
         const persistent = localStorage.getItem(SESSION_KEY);
-        if (persistent) return JSON.parse(persistent);
+
+        if (persistent) {
+            return JSON.parse(persistent);
+        }
 
         const temporary = sessionStorage.getItem(SESSION_KEY);
+
         return temporary ? JSON.parse(temporary) : null;
     } catch {
         return null;
@@ -111,6 +159,7 @@ function saveSession(account, persistent = false) {
     sessionStorage.removeItem(SESSION_KEY);
 
     const storage = persistent ? localStorage : sessionStorage;
+
     storage.setItem(SESSION_KEY, JSON.stringify(session));
 }
 
@@ -186,10 +235,14 @@ function setAuthMode(mode) {
     }
 
     if (switchMode) {
-        switchMode.textContent = isSignup ? "Sign in" : "Create account";
+        switchMode.textContent = isSignup
+            ? "Sign in"
+            : "Create account";
     }
 
-    if (forgotPassword) forgotPassword.hidden = isSignup;
+    if (forgotPassword) {
+        forgotPassword.hidden = isSignup;
+    }
 
     if (authPassword) {
         authPassword.autocomplete = isSignup
@@ -198,13 +251,21 @@ function setAuthMode(mode) {
     }
 }
 
-// LOGIN / SIGNUP EVENTS
+
+/* =========================================================
+   LOGIN / SIGNUP EVENTS
+   ========================================================= */
+
 if (loginTab) {
-    loginTab.addEventListener("click", () => setAuthMode("login"));
+    loginTab.addEventListener("click", () => {
+        setAuthMode("login");
+    });
 }
 
 if (signupTab) {
-    signupTab.addEventListener("click", () => setAuthMode("signup"));
+    signupTab.addEventListener("click", () => {
+        setAuthMode("signup");
+    });
 }
 
 if (switchMode) {
@@ -216,6 +277,7 @@ if (switchMode) {
 if (togglePassword && authPassword) {
     togglePassword.addEventListener("click", () => {
         const showPassword = authPassword.type === "password";
+
         authPassword.type = showPassword ? "text" : "password";
 
         togglePassword.setAttribute(
@@ -230,6 +292,7 @@ if (togglePassword && authPassword) {
 if (authForm) {
     authForm.addEventListener("submit", (event) => {
         event.preventDefault();
+
         clearAuthMessage();
 
         const email = authEmail.value.trim().toLowerCase();
@@ -254,6 +317,7 @@ if (authForm) {
                 showAuthMessage(
                     "Your password must contain at least 8 characters."
                 );
+
                 authPassword.focus();
                 return;
             }
@@ -273,8 +337,12 @@ if (authForm) {
                 return;
             }
 
-            // Demo-only storage. Use a secure backend for real accounts.
-            const account = { name, email, password };
+            // Demo-only storage. Not suitable for real authentication.
+            const account = {
+                name,
+                email,
+                password
+            };
 
             try {
                 localStorage.setItem(
@@ -290,6 +358,7 @@ if (authForm) {
 
             saveSession(account, Boolean(rememberMe?.checked));
             showDashboard(account);
+
             return;
         }
 
@@ -323,13 +392,19 @@ if (forgotPassword) {
     });
 }
 
-// LOGOUT
+
+/* =========================================================
+   LOGOUT
+   ========================================================= */
+
 if (logoutBtn) {
     logoutBtn.addEventListener("click", () => {
         localStorage.removeItem(SESSION_KEY);
         sessionStorage.removeItem(SESSION_KEY);
 
-        if (input) input.value = "";
+        if (input) {
+            input.value = "";
+        }
 
         updateCharacterCount();
         clearError();
@@ -339,9 +414,15 @@ if (logoutBtn) {
     });
 }
 
-// GENERAL HELPERS
+
+/* =========================================================
+   GENERAL HELPERS
+   ========================================================= */
+
 function firstDefined(object, keys, fallback = undefined) {
-    if (!object || typeof object !== "object") return fallback;
+    if (!object || typeof object !== "object") {
+        return fallback;
+    }
 
     for (const key of keys) {
         if (
@@ -357,7 +438,9 @@ function firstDefined(object, keys, fallback = undefined) {
 }
 
 function toText(value, fallback = "") {
-    if (typeof value === "string") return value;
+    if (typeof value === "string") {
+        return value;
+    }
 
     if (typeof value === "number" || typeof value === "boolean") {
         return String(value);
@@ -371,7 +454,9 @@ function normalizeScore(value) {
         value = Number(value.replace("%", "").trim());
     }
 
-    if (typeof value !== "number" || !Number.isFinite(value)) return 0;
+    if (typeof value !== "number" || !Number.isFinite(value)) {
+        return 0;
+    }
 
     return Math.max(0, Math.min(100, Math.round(value)));
 }
@@ -379,13 +464,18 @@ function normalizeScore(value) {
 function normalizeSeverity(value) {
     const severity = toText(value, "info").toLowerCase();
 
-    if (severity.includes("critical")) return "critical";
+    if (severity.includes("critical")) return "high";
     if (severity.includes("high") || severity.includes("danger")) return "high";
     if (severity.includes("medium") || severity.includes("moderate")) return "medium";
     if (severity.includes("low")) return "low";
 
     return "info";
 }
+
+
+/* =========================================================
+   RISK CLASSIFICATION
+   ========================================================= */
 
 function normalizeRisk(score, suppliedLevel) {
     const level = toText(suppliedLevel, "").toLowerCase();
@@ -396,7 +486,7 @@ function normalizeRisk(score, suppliedLevel) {
             label: "CRITICAL",
             title: "High-confidence threat",
             status: "DANGEROUS",
-            statusClass: "dangerous",
+            statusClass: "danger",
             description:
                 "The analysis indicates a potentially serious threat. Avoid interacting with the content until it has been independently verified."
         };
@@ -413,7 +503,7 @@ function normalizeRisk(score, suppliedLevel) {
             label: "HIGH RISK",
             title: "Potential threat detected",
             status: "DANGEROUS",
-            statusClass: "dangerous",
+            statusClass: "danger",
             description:
                 "Suspicious signals were reported. Do not open links or provide credentials until the content has been verified."
         };
@@ -429,7 +519,7 @@ function normalizeRisk(score, suppliedLevel) {
             label: "MODERATE",
             title: "Suspicious signals detected",
             status: "SUSPICIOUS",
-            statusClass: "suspicious",
+            statusClass: "warning",
             description:
                 "The analysis identified signals that warrant further inspection. Treat the content cautiously."
         };
@@ -458,7 +548,7 @@ function normalizeRisk(score, suppliedLevel) {
             label: "CRITICAL",
             title: "High-risk content",
             status: "DANGEROUS",
-            statusClass: "dangerous",
+            statusClass: "danger",
             description:
                 "The reported score is critically high. Avoid interacting with this content."
         };
@@ -470,7 +560,7 @@ function normalizeRisk(score, suppliedLevel) {
             label: "HIGH RISK",
             title: "Potential threat detected",
             status: "DANGEROUS",
-            statusClass: "dangerous",
+            statusClass: "danger",
             description:
                 "The reported score is high. Verify the source before interacting with this content."
         };
@@ -482,7 +572,7 @@ function normalizeRisk(score, suppliedLevel) {
             label: "MODERATE",
             title: "Review recommended",
             status: "SUSPICIOUS",
-            statusClass: "suspicious",
+            statusClass: "warning",
             description:
                 "The reported score suggests caution. Inspect the findings before trusting this content."
         };
@@ -499,7 +589,11 @@ function normalizeRisk(score, suppliedLevel) {
     };
 }
 
-// INPUT AND ERROR HANDLING
+
+/* =========================================================
+   INPUT AND ERROR HANDLING
+   ========================================================= */
+
 function updateCharacterCount() {
     if (!input || !charCount) return;
 
@@ -508,8 +602,15 @@ function updateCharacterCount() {
     charCount.textContent =
         `${length.toLocaleString()} / ${MAX_LENGTH.toLocaleString()}`;
 
-    charCount.classList.toggle("near-limit", length >= MAX_LENGTH * 0.8);
-    charCount.classList.toggle("at-limit", length >= MAX_LENGTH);
+    charCount.classList.toggle(
+        "near-limit",
+        length >= MAX_LENGTH * 0.8
+    );
+
+    charCount.classList.toggle(
+        "at-limit",
+        length >= MAX_LENGTH
+    );
 }
 
 function showError(message) {
@@ -529,8 +630,14 @@ function clearError() {
 function setLoading(loading) {
     isAnalyzing = loading;
 
-    if (analyzeBtn) analyzeBtn.disabled = loading;
-    if (clearBtn) clearBtn.disabled = loading;
+    if (analyzeBtn) {
+        analyzeBtn.disabled = loading;
+        analyzeBtn.setAttribute("aria-busy", String(loading));
+    }
+
+    if (clearBtn) {
+        clearBtn.disabled = loading;
+    }
 
     const label = analyzeBtn?.querySelector(".button-label");
     const arrow = analyzeBtn?.querySelector(".button-arrow");
@@ -539,17 +646,30 @@ function setLoading(loading) {
         label.textContent = loading ? "Analyzing..." : "Analyze threat";
     }
 
-    if (arrow) arrow.hidden = loading;
+    if (arrow) {
+        arrow.hidden = loading;
+    }
 
-    if (input) input.setAttribute("aria-busy", String(loading));
+    if (input) {
+        input.setAttribute("aria-busy", String(loading));
+    }
 }
 
 function resetResults() {
-    if (resultsPlaceholder) resultsPlaceholder.hidden = false;
-    if (resultsContent) resultsContent.hidden = true;
+    if (resultsPlaceholder) {
+        resultsPlaceholder.hidden = false;
+    }
+
+    if (resultsContent) {
+        resultsContent.hidden = true;
+    }
 }
 
-// NORMALIZE API RESPONSE
+
+/* =========================================================
+   NORMALIZE API RESPONSE
+   ========================================================= */
+
 function normalizeResponse(data) {
     if (!data || typeof data !== "object" || Array.isArray(data)) {
         throw new Error("The API returned an invalid response.");
@@ -563,7 +683,13 @@ function normalizeResponse(data) {
     const score = normalizeScore(
         firstDefined(
             nested,
-            ["risk_score", "threat_score", "score", "probability", "confidence"],
+            [
+                "risk_score",
+                "threat_score",
+                "score",
+                "probability",
+                "confidence"
+            ],
             0
         )
     );
@@ -586,7 +712,13 @@ function normalizeResponse(data) {
 
     let rawIndicators = firstDefined(
         nested,
-        ["indicators", "findings", "detections", "threats", "reasons"],
+        [
+            "indicators",
+            "findings",
+            "detections",
+            "threats",
+            "reasons"
+        ],
         []
     );
 
@@ -604,7 +736,9 @@ function normalizeResponse(data) {
                 };
             }
 
-            if (!item || typeof item !== "object") return null;
+            if (!item || typeof item !== "object") {
+                return null;
+            }
 
             return {
                 title: toText(
@@ -618,6 +752,7 @@ function normalizeResponse(data) {
                     ]),
                     "Unnamed indicator"
                 ),
+
                 description: toText(
                     firstDefined(item, [
                         "description",
@@ -628,14 +763,22 @@ function normalizeResponse(data) {
                     ]),
                     "No additional details provided."
                 ),
+
                 severity: normalizeSeverity(
-                    firstDefined(item, ["severity", "risk_level", "level"], "info")
+                    firstDefined(
+                        item,
+                        ["severity", "risk_level", "level"],
+                        "info"
+                    )
                 )
             };
         })
         .filter(Boolean);
 
-    const suppliedTitle = firstDefined(nested, ["title", "summary_title"]);
+    const suppliedTitle = firstDefined(
+        nested,
+        ["title", "summary_title"]
+    );
 
     const suppliedDescription = firstDefined(
         nested,
@@ -649,7 +792,12 @@ function normalizeResponse(data) {
 
     const rawTags = firstDefined(
         nested,
-        ["impact_tags", "categories", "attack_types", "affected_assets"],
+        [
+            "impact_tags",
+            "categories",
+            "attack_types",
+            "affected_assets"
+        ],
         []
     );
 
@@ -658,7 +806,9 @@ function normalizeResponse(data) {
     if (Array.isArray(rawTags)) {
         tags = rawTags
             .map((tag) => {
-                if (typeof tag === "string") return tag;
+                if (typeof tag === "string") {
+                    return tag;
+                }
 
                 if (tag && typeof tag === "object") {
                     return toText(
@@ -676,20 +826,57 @@ function normalizeResponse(data) {
         score,
         risk,
         indicators,
+
         title: toText(suppliedTitle, risk.title),
-        description: toText(suppliedDescription, risk.description),
+
+        description: toText(
+            suppliedDescription,
+            risk.description
+        ),
+
         impact: toText(
             suppliedImpact,
             indicators.length
                 ? "Review the detected indicators to understand the possible consequences."
                 : "No specific impact details were supplied by the analysis API."
         ),
+
         tags,
-        rawLevel: toText(suppliedLevel, risk.label)
+
+        rawLevel: toText(suppliedLevel, risk.label),
+
+        // Optional explanation fields supplied by the backend
+        simpleExplanation: toText(
+            firstDefined(nested, [
+                "simple_explanation",
+                "plain_language_explanation"
+            ]),
+            ""
+        ),
+
+        simpleImpact: toText(
+            firstDefined(nested, [
+                "simple_impact",
+                "plain_language_impact"
+            ]),
+            ""
+        ),
+
+        simpleAdvice: toText(
+            firstDefined(nested, [
+                "simple_advice",
+                "recommended_action"
+            ]),
+            ""
+        )
     };
 }
 
-// RENDER INDICATORS
+
+/* =========================================================
+   RENDER INDICATORS
+   ========================================================= */
+
 function renderIndicators(indicators) {
     if (!indicatorsList) return;
 
@@ -697,8 +884,10 @@ function renderIndicators(indicators) {
 
     if (!indicators.length) {
         const empty = document.createElement("div");
+
         empty.className = "empty-indicators";
         empty.textContent = "No indicators were reported by the API.";
+
         indicatorsList.appendChild(empty);
         return;
     }
@@ -708,13 +897,22 @@ function renderIndicators(indicators) {
         item.className = "indicator-item";
 
         const marker = document.createElement("span");
-        marker.className = "indicator-marker";
+
+        // Matches the stylesheet's indicator icon.
+        marker.className = "indicator-icon";
+
+        if (indicator.severity === "high") {
+            marker.classList.add("danger");
+        } else if (indicator.severity === "low") {
+            marker.classList.add("safe");
+        }
+
         marker.textContent = String(index + 1).padStart(2, "0");
 
         const content = document.createElement("div");
         content.className = "indicator-item-content";
 
-        const title = document.createElement("p");
+        const title = document.createElement("strong");
         title.className = "indicator-item-title";
         title.textContent = indicator.title;
 
@@ -723,16 +921,24 @@ function renderIndicators(indicators) {
         description.textContent = indicator.description;
 
         const severity = document.createElement("span");
-        severity.className = `indicator-severity ${indicator.severity}`;
-        severity.textContent = indicator.severity;
+
+        severity.className =
+            `indicator-severity ${indicator.severity}`;
+
+        severity.textContent = indicator.severity.toUpperCase();
 
         content.append(title, description);
         item.append(marker, content, severity);
+
         indicatorsList.appendChild(item);
     });
 }
 
-// RENDER IMPACT TAGS
+
+/* =========================================================
+   RENDER IMPACT TAGS
+   ========================================================= */
+
 function renderImpactTags(tags) {
     if (!impactTags) return;
 
@@ -740,57 +946,229 @@ function renderImpactTags(tags) {
 
     if (!tags.length) {
         const tag = document.createElement("span");
+
         tag.className = "impact-tag";
         tag.textContent = "No categories provided";
+
         impactTags.appendChild(tag);
         return;
     }
 
     tags.forEach((value) => {
         const tag = document.createElement("span");
+
         tag.className = "impact-tag";
         tag.textContent = value;
+
         impactTags.appendChild(tag);
     });
 }
 
-// RENDER RESULTS
+
+/* =========================================================
+   PLAIN-LANGUAGE EXPLANATION
+   ========================================================= */
+
+function generateSimpleExplanation(result) {
+    const text = [
+        result.title,
+        result.description,
+        result.impact,
+        ...result.indicators.map(item =>
+            `${item.title} ${item.description}`
+        ),
+        ...result.tags
+    ].join(" ").toLowerCase();
+
+    const has = (...keywords) =>
+        keywords.some(keyword => text.includes(keyword));
+
+    if (has("otp", "one-time password", "verification code")) {
+        return {
+            explanation:
+                "This content involves a verification code or OTP. Someone may be trying to trick you into sharing it.",
+
+            impact:
+                "Sharing an OTP can allow another person to approve a login, transaction, or account change.",
+
+            advice:
+                "Never share your OTP with anyone. Only enter it yourself when you initiated the action through an official app or website."
+        };
+    }
+
+    if (has("credential", "password", "login", "account", "sign in")) {
+        return {
+            explanation:
+                "This content may be trying to get you to enter account details, such as your username or password.",
+
+            impact:
+                "If your details reach a scammer, they could access your account or misuse your personal information.",
+
+            advice:
+                "Do not enter your password through the provided link. Open the official website or app yourself and check your account there."
+        };
+    }
+
+    if (has("payment", "bank", "upi", "transaction", "refund", "prize", "lottery")) {
+        return {
+            explanation:
+                "This content may be trying to influence you to send money, make a payment, or share financial information.",
+
+            impact:
+                "You could lose money or expose your banking or payment details.",
+
+            advice:
+                "Do not transfer money or scan an unexpected payment QR code. Verify the request through the bank or organisation's official contact details."
+        };
+    }
+
+    if (has("malicious url", "suspicious url", "shortened url", "deceptive url", "url")) {
+        return {
+            explanation:
+                "The analysis identified a potentially suspicious web link. It may lead to a fake or unsafe website.",
+
+            impact:
+                "The website could attempt to collect your login details or personal information.",
+
+            advice:
+                "Avoid opening the link. Visit the organisation's official website by typing its address yourself."
+        };
+    }
+
+    if (has("urgency", "urgent", "threat", "suspended", "account blocked", "limited time")) {
+        return {
+            explanation:
+                "This content may be using pressure or urgency to make you act without checking whether the request is genuine.",
+
+            impact:
+                "You may make a rushed decision, share private information, or follow a harmful link.",
+
+            advice:
+                "Take your time. Verify the message with the organisation through its official website or contact number."
+        };
+    }
+
+    if (result.risk.key === "low") {
+        return {
+            explanation:
+                "The analysis did not report major suspicious signals in this content.",
+
+            impact:
+                "No specific threat was identified, but automated checks cannot guarantee that a message is genuine.",
+
+            advice:
+                "Check the sender and website address. Do not share sensitive information unless you have verified the source."
+        };
+    }
+
+    return {
+        explanation:
+            "The analysis found suspicious signals in this content. These may indicate an attempt to mislead you or obtain sensitive information.",
+
+        impact:
+            "Interacting with the content could expose personal information, account details, or money, depending on the actual intent.",
+
+        advice:
+            "Do not click links, download attachments, make payments, or share personal information until you independently verify the source."
+    };
+}
+
+function renderSimpleExplanation(result) {
+    if (!simpleExplanation || !simpleImpact || !simpleAdvice) {
+        return;
+    }
+
+    const generated = generateSimpleExplanation(result);
+
+    simpleExplanation.textContent =
+        result.simpleExplanation || generated.explanation;
+
+    simpleImpact.textContent =
+        result.simpleImpact || generated.impact;
+
+    simpleAdvice.textContent =
+        result.simpleAdvice || generated.advice;
+}
+
+
+/* =========================================================
+   RENDER RESULTS
+   ========================================================= */
+
 function renderResults(result) {
-    if (resultsPlaceholder) resultsPlaceholder.hidden = true;
-    if (resultsContent) resultsContent.hidden = false;
+    if (resultsPlaceholder) {
+        resultsPlaceholder.hidden = true;
+    }
 
-    if (riskScore) riskScore.textContent = String(result.score);
+    if (resultsContent) {
+        resultsContent.hidden = false;
+    }
 
+    // Risk score
+    if (riskScore) {
+        riskScore.textContent = String(result.score);
+    }
+
+    // Risk badge
     if (riskLabel) {
         riskLabel.textContent = result.risk.label;
         riskLabel.className = `risk-badge risk-${result.risk.key}`;
     }
 
+    // Score bar
     if (scoreBar) {
         scoreBar.style.width = `${result.score}%`;
-        scoreBar.className = `score-bar ${result.risk.key}`;
+
+        scoreBar.className = `score-bar risk-${result.risk.key}`;
     }
 
+    // Accessible score
     if (scoreTrack) {
-        scoreTrack.setAttribute("aria-valuenow", String(result.score));
+        scoreTrack.setAttribute(
+            "aria-valuenow",
+            String(result.score)
+        );
+
         scoreTrack.setAttribute(
             "aria-valuetext",
             `${result.score} out of 100`
         );
     }
 
+    // Verdict
     if (resultStatus) {
         resultStatus.textContent = result.risk.status;
-        resultStatus.className = `verdict-status ${result.risk.statusClass}`;
+
+        resultStatus.className =
+            `verdict-status ${result.risk.statusClass}`;
     }
 
-    if (resultTitle) resultTitle.textContent = result.title;
-    if (resultDescription) resultDescription.textContent = result.description;
-    if (impactDescription) impactDescription.textContent = result.impact;
-    if (impactSummary) impactSummary.textContent = result.impact;
+    if (resultTitle) {
+        resultTitle.textContent = result.title;
+    }
 
+    if (resultDescription) {
+        resultDescription.textContent = result.description;
+    }
+
+    // Impact
+    if (impactDescription) {
+        impactDescription.textContent = result.impact;
+    }
+
+    if (impactSummary) {
+        impactSummary.textContent = result.impact;
+    }
+
+    if (impactLevel) {
+        impactLevel.textContent = result.risk.label;
+    }
+
+    // Indicator count
     if (indicatorCount) {
-        indicatorCount.textContent = String(result.indicators.length);
+        indicatorCount.textContent = String(
+            result.indicators.length
+        );
     }
 
     if (indicatorSummary) {
@@ -798,44 +1176,63 @@ function renderResults(result) {
             `${result.indicators.length} finding${result.indicators.length === 1 ? "" : "s"}`;
     }
 
-    if (impactLevel) impactLevel.textContent = result.risk.label;
-
     renderIndicators(result.indicators);
     renderImpactTags(result.tags);
 
+    // Plain-language explanation
+    renderSimpleExplanation(result);
+
+    // Timestamp
     if (reportTimestamp) {
         reportTimestamp.textContent = new Date().toLocaleString();
     }
 
+    // Scroll to results
     const resultsSection = document.getElementById("results");
 
     if (resultsSection) {
+        const reducedMotion = window.matchMedia(
+            "(prefers-reduced-motion: reduce)"
+        ).matches;
+
         resultsSection.scrollIntoView({
-            behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches
-                ? "auto"
-                : "smooth",
+            behavior: reducedMotion ? "auto" : "smooth",
             block: "start"
         });
     }
 }
 
-// BACKEND API REQUEST
+
+/* =========================================================
+   BACKEND API REQUEST
+   ========================================================= */
+
 async function analyzeContent(content) {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 30000);
+
+    const timeoutId = setTimeout(
+        () => controller.abort(),
+        REQUEST_TIMEOUT
+    );
 
     try {
         const response = await fetch(API_URL, {
             method: "POST",
+
             headers: {
                 "Content-Type": "application/json",
                 Accept: "application/json"
             },
-            body: JSON.stringify({ content }),
+
+            body: JSON.stringify({
+                content
+            }),
+
             signal: controller.signal
         });
 
         const responseText = await response.text();
+
         let data = {};
 
         if (responseText) {
@@ -849,7 +1246,10 @@ async function analyzeContent(content) {
         }
 
         if (!response.ok) {
-            const detail = firstDefined(data, ["detail", "message", "error"]);
+            const detail = firstDefined(
+                data,
+                ["detail", "message", "error"]
+            );
 
             const message =
                 typeof detail === "string"
@@ -860,6 +1260,7 @@ async function analyzeContent(content) {
         }
 
         return normalizeResponse(data);
+
     } catch (error) {
         if (error.name === "AbortError") {
             throw new Error(
@@ -869,17 +1270,22 @@ async function analyzeContent(content) {
 
         if (error instanceof TypeError) {
             throw new Error(
-                "Cannot connect to the CatchPhish API. Please try again later."
+                "Cannot connect to the CatchPhish API. Check your connection and backend CORS configuration."
             );
         }
 
         throw error;
+
     } finally {
         clearTimeout(timeoutId);
     }
 }
 
-// ANALYZER FORM EVENTS
+
+/* =========================================================
+   ANALYZER FORM EVENTS
+   ========================================================= */
+
 if (input) {
     input.addEventListener("input", () => {
         updateCharacterCount();
@@ -894,12 +1300,14 @@ if (form) {
         if (isAnalyzing) return;
 
         const content = input.value.trim();
+
         clearError();
 
         if (!content) {
             showError(
                 "Enter a URL, email, SMS, or message before starting the analysis."
             );
+
             input.focus();
             return;
         }
@@ -908,6 +1316,7 @@ if (form) {
             showError(
                 `Input exceeds the ${MAX_LENGTH.toLocaleString()} character limit.`
             );
+
             return;
         }
 
@@ -916,8 +1325,12 @@ if (form) {
         try {
             const result = await analyzeContent(content);
             renderResults(result);
+
         } catch (error) {
-            showError(error.message || "Analysis failed. Please try again.");
+            showError(
+                error.message || "Analysis failed. Please try again."
+            );
+
         } finally {
             setLoading(false);
         }
@@ -928,22 +1341,35 @@ if (clearBtn) {
     clearBtn.addEventListener("click", () => {
         if (isAnalyzing) return;
 
-        input.value = "";
+        if (input) {
+            input.value = "";
+        }
+
         updateCharacterCount();
         clearError();
-        input.focus();
+
+        if (input) {
+            input.focus();
+        }
     });
 }
 
-// MOBILE NAVIGATION
-const mobileMenuToggle = document.getElementById("mobile-menu-toggle");
-const appSidebar = document.getElementById("app-sidebar");
+
+/* =========================================================
+   MOBILE NAVIGATION
+   ========================================================= */
 
 function setMobileNavOpen(isOpen) {
-    document.body.classList.toggle("mobile-nav-open", isOpen);
+    document.body.classList.toggle(
+        "mobile-nav-open",
+        isOpen
+    );
 
     if (mobileMenuToggle) {
-        mobileMenuToggle.setAttribute("aria-expanded", String(isOpen));
+        mobileMenuToggle.setAttribute(
+            "aria-expanded",
+            String(isOpen)
+        );
 
         mobileMenuToggle.setAttribute(
             "aria-label",
@@ -960,7 +1386,10 @@ function setMobileNavOpen(isOpen) {
 
 if (mobileMenuToggle) {
     mobileMenuToggle.addEventListener("click", () => {
-        const isOpen = document.body.classList.contains("mobile-nav-open");
+        const isOpen = document.body.classList.contains(
+            "mobile-nav-open"
+        );
+
         setMobileNavOpen(!isOpen);
     });
 }
@@ -982,7 +1411,10 @@ if (appSidebar) {
 
 // Close the mobile menu when clicking outside it.
 document.addEventListener("click", (event) => {
-    if (!document.body.classList.contains("mobile-nav-open")) return;
+    if (!document.body.classList.contains("mobile-nav-open")) {
+        return;
+    }
+
     if (appSidebar?.contains(event.target)) return;
     if (mobileMenuToggle?.contains(event.target)) return;
 
@@ -996,17 +1428,22 @@ document.addEventListener("keydown", (event) => {
     }
 });
 
-// Reset the mobile menu when returning to desktop width.
+// Reset mobile navigation on desktop width.
 window.addEventListener("resize", () => {
     if (window.matchMedia("(min-width: 701px)").matches) {
         setMobileNavOpen(false);
     }
 });
 
-// INITIALIZE
+
+/* =========================================================
+   INITIALIZATION
+   ========================================================= */
+
 function initializeApp() {
     updateCharacterCount();
     clearError();
+
     setAuthMode("login");
 
     const session = getSession();
