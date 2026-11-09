@@ -4,7 +4,9 @@
    CONFIGURATION
    ========================================================= */
 
-const API_BASE_URL = "https://catchphish-bxab.onrender.com";
+const API_BASE_URL = ["localhost", "127.0.0.1"].includes(window.location.hostname)
+    ? "http://127.0.0.1:8000"
+    : "https://catchphish-bxab.onrender.com";
 const API_URL = `${API_BASE_URL}/api/analyze`;
 const IMAGE_API_URL = `${API_BASE_URL}/api/analyze/image`;
 

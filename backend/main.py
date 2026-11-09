@@ -1277,6 +1277,7 @@ def health():
         return {
             "status": "healthy",
             "database": "connected",
+            "supabase": "configured" if SUPABASE_CLIENT is not None else "not_configured",
             "version": "4.1.0",
         }
 

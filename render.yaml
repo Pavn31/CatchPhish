@@ -1,0 +1,25 @@
+services:
+  - type: web
+    name: catchphish-api
+    runtime: python
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /api/health
+    envVars:
+      - key: ENVIRONMENT
+        value: production
+      - key: SESSION_SECRET
+        sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SECRET_KEY
+        sync: false
+      - key: FRONTEND_URLS
+        value: https://catchphish-front.onrender.com
+
+  - type: static_site
+    name: catchphish-frontend
+    rootDir: frontend
+    buildCommand: echo "Static frontend ready"
+    publishPath: .
