@@ -16,6 +16,10 @@ CatchPhish is a web-based phishing detection platform designed to help users ana
 ## Features
 
 - **Phishing Detection** – Analyze suspicious URLs and messages for potential phishing threats.
+- **Multi-channel Scam Detection** – Detect email phishing, WhatsApp scams, QR/payment scams, phone-number pressure, brand impersonation and multilingual scam content.
+- **Web Attack Detection** – Flag common SQL injection and cross-site scripting payloads in submitted input.
+- **Screenshot and QR Analysis** – Upload screenshots or QR images for OCR and QR destination analysis. Images are processed in memory and are not stored.
+- **Advanced URL Intelligence** – Inspect URL structure, redirects, punycode, encoded paths, risky TLDs, shorteners and executable downloads.
 - **Risk Assessment** – View risk scores and threat classifications.
 - **Detection Details** – Understand the suspicious indicators identified during analysis.
 - **Plain-Language Explanations** – Understand what is happening, how it could affect you, and what actions to take.

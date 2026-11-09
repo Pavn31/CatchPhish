@@ -428,7 +428,7 @@
                         </div>
 
                         <div class="metric-foot">
-                            URL, email, SMS or message
+                            URL, email, SMS, WhatsApp, screenshot or QR
                         </div>
                     </article>
 
@@ -492,7 +492,7 @@
 
                                 <div>
                                     <h3>Inspect suspicious content</h3>
-                                    <p>Submit a message or URL for security analysis.</p>
+                                    <p>Submit a message, URL, screenshot or QR image for security analysis.</p>
                                 </div>
 
                             </div>
@@ -509,6 +509,18 @@
 
 
                         <form id="analyze-form">
+
+                            <div class="scan-options">
+                                <label class="field-label" for="scan-type">SCAN TYPE</label>
+                                <select id="scan-type" name="scanType">
+                                    <option value="auto">Auto-detect</option>
+                                    <option value="email">Email phishing</option>
+                                    <option value="whatsapp">WhatsApp scam</option>
+                                    <option value="url">Advanced URL intelligence</option>
+                                    <option value="sqli">SQL injection / XSS</option>
+                                    <option value="phone">Phone scam</option>
+                                </select>
+                            </div>
 
                             <label for="suspect-input" class="field-label">
                                 CONTENT TO ANALYZE
@@ -528,6 +540,12 @@
                                     CP / INPUT
                                 </div>
 
+                            </div>
+
+                            <div class="image-upload-row">
+                                <label for="image-input" class="button button-secondary">Upload screenshot / QR</label>
+                                <input id="image-input" type="file" accept="image/png,image/jpeg,image/webp,image/bmp,image/gif" hidden>
+                                <span id="image-name">No image selected</span>
                             </div>
 
 

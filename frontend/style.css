@@ -125,6 +125,12 @@ select {
     max-width: 100%;
 }
 
+.scan-options { margin-bottom: 16px; }
+.scan-options select { width: 100%; padding: 11px 12px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface-raised); color: var(--text); }
+.image-upload-row { display: flex; align-items: center; gap: 12px; margin: 14px 0; flex-wrap: wrap; }
+.image-upload-row label { margin: 0; }
+#image-name { color: var(--muted); font-size: 12px; }
+
 /* =========================================================
    AUTHENTICATION
    ========================================================= */

@@ -2,3 +2,7 @@
 fastapi
 uvicorn[standard]
 itsdangerous
+pillow
+opencv-python-headless
+pytesseract
+python-multipart

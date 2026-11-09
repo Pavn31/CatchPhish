@@ -8,13 +8,14 @@ import re
 import secrets
 import sqlite3
 import warnings
+import io
 
 from collections import defaultdict
 from pathlib import Path
 from urllib.parse import urlsplit, unquote
 
 from dotenv import load_dotenv
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException, Request, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field, field_validator
 from starlette.middleware.sessions import SessionMiddleware
@@ -82,6 +83,24 @@ DATABASE_PATH.parent.mkdir(parents=True, exist_ok=True)
 MAX_CONTENT_LENGTH = 10_000
 MAX_URLS = 30
 PASSWORD_ITERATIONS = 600_000
+MAX_IMAGE_BYTES = 8 * 1024 * 1024
+
+try:
+    from PIL import Image
+except ImportError:  # pragma: no cover - optional image support in minimal installs
+    Image = None
+
+try:
+    import cv2
+    import numpy as np
+except ImportError:  # pragma: no cover - QR support remains explicit in the response
+    cv2 = None
+    np = None
+
+try:
+    import pytesseract
+except ImportError:  # pragma: no cover - OCR is optional at runtime
+    pytesseract = None
 
 
 # ============================================================
@@ -91,7 +110,7 @@ PASSWORD_ITERATIONS = 600_000
 app = FastAPI(
     title="CatchPhish API",
     description="Phishing, scam and suspicious URL risk analysis",
-    version="4.0.0",
+    version="4.1.0",
 )
 
 app.add_middleware(
@@ -240,6 +259,8 @@ class AnalyzeRequest(BaseModel):
         min_length=1,
         max_length=MAX_CONTENT_LENGTH,
     )
+
+    scan_type: str = Field(default="auto", max_length=30)
 
 
 # ============================================================
@@ -495,7 +516,52 @@ CONTENT_RULES = [
         "points": 14,
         "description": "The message encourages opening or executing an attachment.",
     },
+    {
+        "name": "SQL injection payload",
+        "category": "sqli",
+        "pattern": r"(?:'|%27|\b)(?:\s*or\s+\d+\s*=\s*\d+|\s*union\s+select\b|\s*and\s+\d+\s*=\s*\d+|\s*drop\s+table\b|\s*information_schema\b|\s*sleep\s*\()",
+        "severity": "CRITICAL",
+        "points": 42,
+        "description": "The input resembles a SQL injection payload that could alter a database query.",
+    },
+    {
+        "name": "Cross-site scripting payload",
+        "category": "xss",
+        "pattern": r"(?:<\s*script\b|javascript\s*:|on(?:error|load|click|mouseover)\s*=|<\s*(?:svg|img|iframe)\b[^>]*(?:onerror|src\s*=))",
+        "severity": "CRITICAL",
+        "points": 42,
+        "description": "The input contains markup or script syntax commonly used in cross-site scripting attacks.",
+    },
+    {
+        "name": "WhatsApp scam pattern",
+        "category": "whatsapp_scam",
+        "pattern": r"\b(?:whatsapp|wa\.me)\b.{0,100}\b(?:gift|loan|job|kyc|otp|investment|reward|support|admin|forward)\b|\b(?:forward|send)\s+this\s+message\s+to\s+\d+",
+        "severity": "HIGH",
+        "points": 24,
+        "description": "The content resembles a WhatsApp chain, fake support, reward or account scam.",
+    },
+    {
+        "name": "QR payment pressure",
+        "category": "qr_scam",
+        "pattern": r"\b(?:scan|scanning)\b.{0,50}\b(?:qr|code)\b.{0,80}\b(?:pay|payment|upi|collect|refund|receive)\b|\bqr\s*code\b.{0,80}\b(?:refund|cashback|prize|receive money)\b",
+        "severity": "HIGH",
+        "points": 28,
+        "description": "The content pressures the recipient to scan a QR code for a payment or refund.",
+    },
 ]
+
+PHONE_PATTERN = re.compile(r"(?<!\w)(?:\+?\d[\d\s().-]{7,}\d)(?!\w)")
+PHONE_SCAM_PATTERN = re.compile(r"\b(?:call|contact| whatsapp|telegram|sms)\b.{0,70}\b(?:otp|kyc|bank|account|payment|refund|prize|police|arrest|loan)\b", re.I)
+
+LANGUAGE_HINTS = {
+    "Hindi": (r"[\u0900-\u097F]", ("otp", "kyc", "inaam", "bhugtan", "bank")),
+    "Bengali": (r"[\u0980-\u09FF]", ("otp", "kyc", "bank")),
+    "Tamil": (r"[\u0B80-\u0BFF]", ("otp", "kyc", "bank")),
+    "Telugu": (r"[\u0C00-\u0C7F]", ("otp", "kyc", "bank")),
+    "Marathi": (r"[\u0900-\u097F]", ("otp", "kyc", "bank")),
+    "Arabic": (r"[\u0600-\u06FF]", ("otp", "kyc", "bank")),
+    "Cyrillic": (r"[\u0400-\u04FF]", ("otp", "kyc", "bank")),
+}
 
 
 # ============================================================
@@ -591,7 +657,7 @@ def inspect_brand_impersonation(hostname, indicators):
     labels = get_domain_labels(hostname)
 
     for brand, official_domains in BRAND_DOMAINS.items():
-        if brand not in labels:
+        if not any(brand == label or brand in label for label in labels):
             continue
 
         legitimate = any(
@@ -812,6 +878,43 @@ def inspect_url(raw_url, indicators):
                 "url_obfuscation",
             )
 
+    full_url = unquote(candidate).lower()
+    suspicious_tlds = {"zip", "mov", "click", "top", "work", "gq", "tk", "xyz", "buzz"}
+    if hostname.rsplit(".", 1)[-1] in suspicious_tlds:
+        add_indicator(indicators, "High-risk domain ending", "The domain uses a TLD frequently seen in disposable or abusive campaigns.", "MEDIUM", 12, "url_reputation")
+    if re.search(r"(?:@|%40|\\x40)", full_url) and parsed.username is None:
+        add_indicator(indicators, "Obfuscated destination", "The URL contains encoded destination-disguise characters.", "MEDIUM", 12, "url_obfuscation")
+    if re.search(r"(?:javascript:|data:text/html|vbscript:)", full_url):
+        add_indicator(indicators, "Executable URL scheme", "The URL uses a script or data scheme instead of a normal web destination.", "CRITICAL", 40, "url_obfuscation")
+    if re.search(r"(?:utm_|gclid=|fbclid=)", parsed.query.lower()) and len(parsed.query) > 240:
+        add_indicator(indicators, "Excessive tracking parameters", "The URL contains an unusually large tracking query that can obscure the actual destination.", "LOW", 6, "url_obfuscation")
+
+
+def inspect_phone_numbers(text, indicators):
+    numbers = PHONE_PATTERN.findall(text)
+    if not numbers:
+        return
+    normalized = [re.sub(r"\D", "", value) for value in numbers]
+    if any(len(value) >= 10 for value in normalized):
+        add_indicator(indicators, "Phone number detected", "A phone number is present. Verify it independently before calling or sharing information.", "LOW", 5, "phone_number")
+        if PHONE_SCAM_PATTERN.search(text):
+            add_indicator(indicators, "Phone-based scam pressure", "The phone contact is paired with banking, OTP, payment or authority-pressure language.", "HIGH", 25, "phone_scam")
+
+
+def inspect_language(text, indicators):
+    detected = []
+    for language, (script, keywords) in LANGUAGE_HINTS.items():
+        if re.search(script, text):
+            detected.append(language)
+    if detected:
+        add_indicator(indicators, "Multilingual content detected", f"The content includes {', '.join(detected)} signals. Scam campaigns may use local languages or mixed scripts to appear trustworthy.", "LOW", 6, "language")
+    return detected
+
+
+def inspect_qr_text(text, indicators):
+    if re.search(r"(?i)\b(?:upi|paytm|phonepe|gpay|bharatpe|scan\s+(?:this\s+)?qr)\b", text):
+        add_indicator(indicators, "QR or UPI payment content", "Payment identifiers or QR instructions were found. A QR scan can authorize a payment even when the message calls it a refund or receipt.", "HIGH", 24, "qr_scam")
+
 
 # ============================================================
 # CONTEXT ANALYSIS
@@ -929,7 +1032,7 @@ def classify_risk(score, indicators):
         for item in indicators
     )
 
-    if score >= 75 or (has_critical and score >= 55):
+    if score >= 75 or (has_critical and score >= 40):
         return (
             "CRITICAL",
             "Critical risk",
@@ -977,6 +1080,9 @@ def analyze_content(content: str):
     indicators = []
 
     inspect_content_rules(text, indicators)
+    inspect_phone_numbers(text, indicators)
+    inspect_qr_text(text, indicators)
+    detected_languages = inspect_language(text, indicators)
 
     urls = extract_urls(text)
 
@@ -1041,13 +1147,54 @@ def analyze_content(content: str):
         "indicators": unique_indicators,
         "analyzed_urls": urls,
         "indicator_count": len(unique_indicators),
-        "analysis_version": "4.0.0",
+        "analysis_version": "4.1.0",
+        "detected_languages": detected_languages,
+        "detected_features": sorted({item["category"] for item in unique_indicators}),
         "score_explanation": (
             "The score is a heuristic assessment based on detected indicators "
             "and contextual combinations. It is not a probability or a guarantee "
             "that content is malicious or safe."
         ),
     }
+
+
+def analyze_image_bytes(image_bytes: bytes, filename: str = "upload"):
+    if Image is None:
+        raise HTTPException(status_code=503, detail="Image analysis dependencies are not installed.")
+    try:
+        image = Image.open(io.BytesIO(image_bytes))
+        image.verify()
+        image = Image.open(io.BytesIO(image_bytes)).convert("RGB")
+    except Exception as exc:
+        raise HTTPException(status_code=422, detail="The uploaded file is not a valid image.") from exc
+
+    qr_values = []
+    if cv2 is not None and np is not None:
+        detector = cv2.QRCodeDetector()
+        decoded, points, _ = detector.detectAndDecode(np.array(image))
+        if decoded:
+            qr_values.append(decoded)
+
+    ocr_text = ""
+    if pytesseract is not None:
+        try:
+            ocr_text = pytesseract.image_to_string(image, timeout=8).strip()
+        except Exception:
+            logger.warning("OCR unavailable for %s; continuing with QR and image metadata.", filename)
+
+    extracted = "\n".join([ocr_text, *qr_values]).strip()
+    result = analyze_content(extracted or "image upload")
+    if qr_values:
+        add_indicator(result["indicators"], "QR code detected", "A QR code was decoded from the image. Treat unexpected payment or login destinations as untrusted.", "HIGH", 22, "qr_code")
+        result["indicator_count"] = len(result["indicators"])
+        result["risk_score"] = calculate_risk_score(result["indicators"])
+        result["risk_level"], result["verdict"], result["summary"] = classify_risk(result["risk_score"], result["indicators"])
+    result["input_type"] = "screenshot" if not qr_values else "qr_code"
+    result["image"] = {"filename": filename, "width": image.width, "height": image.height, "ocr_available": pytesseract is not None, "qr_available": cv2 is not None}
+    result["extracted_text"] = extracted[:MAX_CONTENT_LENGTH]
+    result["qr_contents"] = qr_values
+    result["analysis_version"] = "4.1.0"
+    return result
 
 
 # ============================================================
@@ -1059,7 +1206,7 @@ def root():
     return {
         "name": "CatchPhish",
         "status": "online",
-        "version": "4.0.0",
+        "version": "4.1.0",
         "docs": "/docs",
     }
 
@@ -1073,7 +1220,7 @@ def health():
         return {
             "status": "healthy",
             "database": "connected",
-            "version": "4.0.0",
+            "version": "4.1.0",
         }
 
     except sqlite3.Error:
@@ -1105,6 +1252,18 @@ def analyze(payload: AnalyzeRequest):
             status_code=500,
             detail="An internal analysis error occurred.",
         )
+
+
+@app.post("/api/analyze/image")
+async def analyze_image(file: UploadFile = File(...)):
+    """Analyze screenshots and QR-code images without storing the upload."""
+    allowed = {"image/png", "image/jpeg", "image/webp", "image/bmp", "image/gif"}
+    if file.content_type not in allowed:
+        raise HTTPException(status_code=415, detail="Upload a PNG, JPEG, WEBP, BMP or GIF image.")
+    image_bytes = await file.read(MAX_IMAGE_BYTES + 1)
+    if len(image_bytes) > MAX_IMAGE_BYTES:
+        raise HTTPException(status_code=413, detail="Image must be 8 MB or smaller.")
+    return analyze_image_bytes(image_bytes, file.filename or "upload")
 
 
 # ============================================================

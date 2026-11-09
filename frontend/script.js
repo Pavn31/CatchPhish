@@ -6,6 +6,7 @@
 
 const API_BASE_URL = "https://catchphish-bxab.onrender.com";
 const API_URL = `${API_BASE_URL}/api/analyze`;
+const IMAGE_API_URL = `${API_BASE_URL}/api/analyze/image`;
 
 const MAX_LENGTH = 10000;
 const REQUEST_TIMEOUT = 30000;
@@ -61,6 +62,9 @@ const clearBtn = document.getElementById("clear-btn");
 
 const charCount = document.getElementById("char-count");
 const errorMessage = document.getElementById("error-message");
+const scanType = document.getElementById("scan-type");
+const imageInput = document.getElementById("image-input");
+const imageName = document.getElementById("image-name");
 
 // Results
 const resultsPlaceholder = document.getElementById("results-placeholder");
@@ -1207,7 +1211,7 @@ function renderResults(result) {
    BACKEND API REQUEST
    ========================================================= */
 
-async function analyzeContent(content) {
+async function analyzeContent(content, imageFile = null) {
     const controller = new AbortController();
 
     const timeoutId = setTimeout(
@@ -1216,19 +1220,24 @@ async function analyzeContent(content) {
     );
 
     try {
-        const response = await fetch(API_URL, {
-            method: "POST",
+        const options = imageFile
+            ? {
+                method: "POST",
+                body: (() => { const data = new FormData(); data.append("file", imageFile); return data; })(),
+                signal: controller.signal
+            }
+            : {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    Accept: "application/json"
+                },
+                body: JSON.stringify({ content, scan_type: scanType?.value || "auto" }),
+                signal: controller.signal
+            };
 
-            headers: {
-                "Content-Type": "application/json",
-                Accept: "application/json"
-            },
-
-            body: JSON.stringify({
-                content
-            }),
-
-            signal: controller.signal
+        const response = await fetch(imageFile ? IMAGE_API_URL : API_URL, {
+            ...options
         });
 
         const responseText = await response.text();
@@ -1293,6 +1302,14 @@ if (input) {
     });
 }
 
+if (imageInput) {
+    imageInput.addEventListener("change", () => {
+        const file = imageInput.files?.[0];
+        if (imageName) imageName.textContent = file ? `${file.name} selected` : "No image selected";
+        clearError();
+    });
+}
+
 if (form) {
     form.addEventListener("submit", async (event) => {
         event.preventDefault();
@@ -1300,10 +1317,11 @@ if (form) {
         if (isAnalyzing) return;
 
         const content = input.value.trim();
+        const imageFile = imageInput?.files?.[0] || null;
 
         clearError();
 
-        if (!content) {
+        if (!content && !imageFile) {
             showError(
                 "Enter a URL, email, SMS, or message before starting the analysis."
             );
@@ -1323,7 +1341,7 @@ if (form) {
         setLoading(true);
 
         try {
-            const result = await analyzeContent(content);
+            const result = await analyzeContent(content, imageFile);
             renderResults(result);
 
         } catch (error) {
@@ -1344,6 +1362,9 @@ if (clearBtn) {
         if (input) {
             input.value = "";
         }
+
+        if (imageInput) imageInput.value = "";
+        if (imageName) imageName.textContent = "No image selected";
 
         updateCharacterCount();
         clearError();
