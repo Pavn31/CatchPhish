@@ -102,6 +102,21 @@ try:
 except ImportError:  # pragma: no cover - OCR is optional at runtime
     pytesseract = None
 
+try:
+    from supabase import create_client
+except ImportError:  # pragma: no cover - optional persistence in minimal installs
+    create_client = None
+
+SUPABASE_URL = os.getenv("SUPABASE_URL", "").strip()
+SUPABASE_SECRET_KEY = os.getenv("SUPABASE_SECRET_KEY", "").strip()
+SUPABASE_CLIENT = None
+
+if create_client and SUPABASE_URL and SUPABASE_SECRET_KEY and not SUPABASE_SECRET_KEY.startswith("CHANGE_ME"):
+    try:
+        SUPABASE_CLIENT = create_client(SUPABASE_URL, SUPABASE_SECRET_KEY)
+    except Exception:
+        logger.warning("Supabase persistence could not be initialized.", exc_info=True)
+
 
 # ============================================================
 # APPLICATION
@@ -1179,6 +1194,27 @@ def analyze_content(content: str):
     }
 
 
+def persist_scan(result, content, user_email=None, input_type="text"):
+    """Best-effort scan history persistence; detection must remain available offline."""
+    if SUPABASE_CLIENT is None:
+        return False
+    try:
+        SUPABASE_CLIENT.table("scan_history").insert({
+            "user_email": user_email,
+            "input_type": input_type,
+            "content_hash": hashlib.sha256(content.encode("utf-8")).hexdigest(),
+            "risk_score": result["risk_score"],
+            "risk_level": result["risk_level"],
+            "verdict": result["verdict"],
+            "indicators": result["indicators"],
+            "analyzed_urls": result.get("analyzed_urls", []),
+        }).execute()
+        return True
+    except Exception:
+        logger.warning("Could not persist scan history to Supabase.", exc_info=True)
+        return False
+
+
 def analyze_image_bytes(image_bytes: bytes, filename: str = "upload"):
     if Image is None:
         raise HTTPException(status_code=503, detail="Image analysis dependencies are not installed.")
@@ -1254,7 +1290,7 @@ def health():
 
 
 @app.post("/api/analyze")
-def analyze(payload: AnalyzeRequest):
+def analyze(payload: AnalyzeRequest, request: Request):
     content = payload.content.strip()
 
     if not content:
@@ -1264,7 +1300,15 @@ def analyze(payload: AnalyzeRequest):
         )
 
     try:
-        return analyze_content(content)
+        result = analyze_content(content)
+        user = request.session.get("user") or {}
+        result["history_saved"] = persist_scan(
+            result,
+            content,
+            user.get("email"),
+            "text",
+        )
+        return result
 
     except Exception:
         logger.exception("Phishing analysis failed")
@@ -1276,7 +1320,7 @@ def analyze(payload: AnalyzeRequest):
 
 
 @app.post("/api/analyze/image")
-async def analyze_image(file: UploadFile = File(...)):
+async def analyze_image(request: Request, file: UploadFile = File(...)):
     """Analyze screenshots and QR-code images without storing the upload."""
     allowed = {"image/png", "image/jpeg", "image/webp", "image/bmp", "image/gif"}
     if file.content_type not in allowed:
@@ -1284,7 +1328,15 @@ async def analyze_image(file: UploadFile = File(...)):
     image_bytes = await file.read(MAX_IMAGE_BYTES + 1)
     if len(image_bytes) > MAX_IMAGE_BYTES:
         raise HTTPException(status_code=413, detail="Image must be 8 MB or smaller.")
-    return analyze_image_bytes(image_bytes, file.filename or "upload")
+    result = analyze_image_bytes(image_bytes, file.filename or "upload")
+    user = request.session.get("user") or {}
+    result["history_saved"] = persist_scan(
+        result,
+        result.get("extracted_text", file.filename or "image upload"),
+        user.get("email"),
+        result.get("input_type", "image"),
+    )
+    return result
 
 
 # ============================================================
