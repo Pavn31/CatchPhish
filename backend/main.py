@@ -614,8 +614,9 @@ def extract_urls(text):
         for match in pattern.findall(text):
             candidate = clean_url_candidate(match)
 
-            if candidate and candidate.lower() not in seen:
-                seen.add(candidate.lower())
+            canonical = re.sub(r"(?i)^https?://", "", candidate).rstrip("/").lower()
+            if candidate and canonical not in seen:
+                seen.add(canonical)
                 urls.append(candidate)
 
             if len(urls) >= MAX_URLS:
@@ -882,6 +883,24 @@ def inspect_url(raw_url, indicators):
     suspicious_tlds = {"zip", "mov", "click", "top", "work", "gq", "tk", "xyz", "buzz"}
     if hostname.rsplit(".", 1)[-1] in suspicious_tlds:
         add_indicator(indicators, "High-risk domain ending", "The domain uses a TLD frequently seen in disposable or abusive campaigns.", "MEDIUM", 12, "url_reputation")
+    registrable_labels = labels[-2:] if len(labels) >= 2 else labels
+    host_label = registrable_labels[0] if registrable_labels else ""
+    if (
+        not is_ip_address(hostname)
+        and 4 <= len(host_label) <= 14
+        and re.fullmatch(r"[a-z0-9]+", host_label)
+        and not re.search(r"[aeiou]{2}|[bcdfghjklmnpqrstvwxyz]{4}", host_label)
+        and len(set(host_label)) >= 4
+    ):
+        add_indicator(indicators, "Random-looking hostname", "The registrable domain looks algorithmically generated rather than like a recognizable organization name.", "MEDIUM", 14, "url_reputation")
+    path_segments = [segment for segment in parsed.path.split("/") if segment]
+    if any(re.fullmatch(r"[A-Za-z0-9]{6,}", segment) and not re.search(r"[aeiou]{2}", segment.lower()) for segment in path_segments):
+        add_indicator(indicators, "Opaque URL path token", "The link contains a random-looking path token, which is common in disposable campaign URLs.", "LOW", 7, "url_obfuscation")
+    query_parts = [part for part in parsed.query.split("&") if part]
+    if any(len(part) >= 12 and "=" not in part and part.isdigit() for part in query_parts):
+        add_indicator(indicators, "Opaque tracking parameter", "The URL contains a long unnamed numeric parameter that can identify a campaign recipient or redirect session.", "LOW", 7, "url_obfuscation")
+    if any(part.lower() == "s=wa" for part in query_parts):
+        add_indicator(indicators, "Messaging campaign marker", "The URL contains a WhatsApp campaign marker. Verify the sender before opening it.", "LOW", 5, "campaign_tracking")
     if re.search(r"(?:@|%40|\\x40)", full_url) and parsed.username is None:
         add_indicator(indicators, "Obfuscated destination", "The URL contains encoded destination-disguise characters.", "MEDIUM", 12, "url_obfuscation")
     if re.search(r"(?:javascript:|data:text/html|vbscript:)", full_url):
@@ -891,7 +910,9 @@ def inspect_url(raw_url, indicators):
 
 
 def inspect_phone_numbers(text, indicators):
-    numbers = PHONE_PATTERN.findall(text)
+    text_without_urls = URL_PATTERN.sub(" ", text)
+    text_without_urls = BARE_DOMAIN_PATTERN.sub(" ", text_without_urls)
+    numbers = PHONE_PATTERN.findall(text_without_urls)
     if not numbers:
         return
     normalized = [re.sub(r"\D", "", value) for value in numbers]
