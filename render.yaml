@@ -15,6 +15,8 @@ services:
         sync: false
       - key: SUPABASE_SECRET_KEY
         sync: false
+      - key: URLSCAN_API_KEY
+        sync: false
       - key: FRONTEND_URLS
         value: https://catchphish-front.onrender.com
 

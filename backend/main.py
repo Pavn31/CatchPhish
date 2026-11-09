@@ -107,8 +107,14 @@ try:
 except ImportError:  # pragma: no cover - optional persistence in minimal installs
     create_client = None
 
+try:
+    import httpx
+except ImportError:  # pragma: no cover - optional URLScan integration
+    httpx = None
+
 SUPABASE_URL = os.getenv("SUPABASE_URL", "").strip()
 SUPABASE_SECRET_KEY = os.getenv("SUPABASE_SECRET_KEY", "").strip()
+URLSCAN_API_KEY = os.getenv("URLSCAN_API_KEY", "").strip()
 SUPABASE_CLIENT = None
 
 if create_client and SUPABASE_URL and SUPABASE_SECRET_KEY and not SUPABASE_SECRET_KEY.startswith("CHANGE_ME"):
@@ -1194,6 +1200,63 @@ def analyze_content(content: str):
     }
 
 
+def submit_urlscan(url):
+    """Submit one URL to urlscan.io without making it a hard dependency."""
+    if not URLSCAN_API_KEY or httpx is None:
+        return {"status": "disabled", "reason": "URLSCAN_API_KEY is not configured."}
+    try:
+        response = httpx.post(
+            "https://urlscan.io/api/v1/scan",
+            headers={"api-key": URLSCAN_API_KEY, "Content-Type": "application/json"},
+            json={"url": url, "visibility": "private", "tags": ["catchphish"]},
+            timeout=12,
+        )
+        if response.status_code not in {200, 201}:
+            return {"status": "error", "code": response.status_code, "reason": "URLScan rejected the submission."}
+        data = response.json()
+        return {
+            "status": "submitted",
+            "uuid": data.get("uuid"),
+            "result_url": data.get("result"),
+        }
+    except Exception:
+        logger.warning("URLScan submission failed.", exc_info=True)
+        return {"status": "error", "reason": "URLScan is temporarily unavailable."}
+
+
+def get_urlscan_result(scan_id):
+    if not URLSCAN_API_KEY or httpx is None:
+        return {"status": "disabled"}
+    try:
+        response = httpx.get(
+            f"https://urlscan.io/api/v1/result/{scan_id}/",
+            headers={"api-key": URLSCAN_API_KEY},
+            timeout=12,
+        )
+        if response.status_code == 404:
+            return {"status": "pending", "uuid": scan_id}
+        if response.status_code != 200:
+            return {"status": "error", "code": response.status_code}
+        data = response.json()
+        verdicts = data.get("verdicts", {})
+        urlscan_verdict = verdicts.get("urlscan", {})
+        engines_verdict = verdicts.get("engines", {})
+        malicious = bool(urlscan_verdict.get("malicious"))
+        score = urlscan_verdict.get("score")
+        return {
+            "status": "ready",
+            "uuid": scan_id,
+            "malicious": malicious,
+            "score": score,
+            "engines": engines_verdict,
+            "page_url": data.get("page", {}).get("url"),
+            "page_status": data.get("page", {}).get("status"),
+        }
+    except Exception:
+        logger.warning("URLScan result lookup failed.", exc_info=True)
+        return {"status": "error", "reason": "URLScan result is temporarily unavailable."}
+
+
 def persist_scan(result, content, user_email=None, input_type="text"):
     """Best-effort scan history persistence; detection must remain available offline."""
     if SUPABASE_CLIENT is None:
@@ -1303,6 +1366,10 @@ def analyze(payload: AnalyzeRequest, request: Request):
     try:
         result = analyze_content(content)
         user = request.session.get("user") or {}
+        result["urlscan_scans"] = [
+            {"url": url, **submit_urlscan(url)}
+            for url in result.get("analyzed_urls", [])[:3]
+        ]
         result["history_saved"] = persist_scan(
             result,
             content,
@@ -1318,6 +1385,13 @@ def analyze(payload: AnalyzeRequest, request: Request):
             status_code=500,
             detail="An internal analysis error occurred.",
         )
+
+
+@app.get("/api/urlscan/{scan_id}")
+def urlscan_result(scan_id: str):
+    if not re.fullmatch(r"[a-f0-9-]{20,80}", scan_id, re.IGNORECASE):
+        raise HTTPException(status_code=400, detail="Invalid URLScan scan ID.")
+    return get_urlscan_result(scan_id)
 
 
 @app.post("/api/analyze/image")

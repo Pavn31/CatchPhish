@@ -788,6 +788,9 @@ function normalizeResponse(data) {
         score,
         risk,
         indicators,
+        urlscanScans: Array.isArray(nested.urlscan_scans)
+            ? nested.urlscan_scans
+            : [],
 
         title: toText(suppliedTitle, risk.title),
 
@@ -1139,7 +1142,14 @@ function renderResults(result) {
     }
 
     renderIndicators(result.indicators);
-    renderImpactTags(result.tags);
+    const urlscanTags = result.urlscanScans.length
+        ? result.urlscanScans.map((scan) =>
+            scan.status === "submitted"
+                ? "URLScan submitted (private)"
+                : `URLScan: ${scan.status}`
+        )
+        : [];
+    renderImpactTags([...result.tags, ...urlscanTags]);
 
     // Plain-language explanation
     renderSimpleExplanation(result);
@@ -1250,6 +1260,45 @@ async function analyzeContent(content, imageFile = null) {
     }
 }
 
+async function pollUrlScan(result) {
+    const pending = result.urlscanScans.filter(
+        (scan) => scan.status === "submitted" && scan.uuid
+    );
+    if (!pending.length) return;
+
+    // urlscan.io asks clients to wait at least 30 seconds before the first
+    // result request. This runs after the initial report is already visible.
+    await new Promise((resolve) => setTimeout(resolve, 35000));
+
+    for (const scan of pending) {
+        try {
+            const response = await fetch(
+                `${API_BASE_URL}/api/urlscan/${encodeURIComponent(scan.uuid)}`,
+                { credentials: "include", headers: { Accept: "application/json" } }
+            );
+            const data = await response.json().catch(() => ({}));
+            scan.status = data.status || "error";
+            scan.malicious = data.malicious;
+
+            if (data.status === "ready" && data.malicious) {
+                result.indicators.unshift({
+                    title: "URLScan malicious verdict",
+                    description: "urlscan.io reported malicious behavior or a malicious verdict for this destination.",
+                    severity: "critical"
+                });
+                result.score = Math.max(result.score, 75);
+                result.risk = normalizeRisk(result.score, "CRITICAL");
+                result.title = "External threat intelligence flagged this URL";
+                result.description = "The destination received a malicious verdict from urlscan.io. Do not open it or submit information.";
+            }
+        } catch {
+            scan.status = "error";
+        }
+    }
+
+    renderResults(result);
+}
+
 
 /* =========================================================
    ANALYZER FORM EVENTS
@@ -1303,6 +1352,7 @@ if (form) {
         try {
             const result = await analyzeContent(content, imageFile);
             renderResults(result);
+            void pollUrlScan(result);
 
         } catch (error) {
             showError(
