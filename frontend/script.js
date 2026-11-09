@@ -9,6 +9,7 @@ const API_BASE_URL = ["localhost", "127.0.0.1"].includes(window.location.hostnam
     : "https://catchphish-bxab.onrender.com";
 const API_URL = `${API_BASE_URL}/api/analyze`;
 const IMAGE_API_URL = `${API_BASE_URL}/api/analyze/image`;
+const AUTH_API_URL = `${API_BASE_URL}/api/auth`;
 
 const MAX_LENGTH = 10000;
 const REQUEST_TIMEOUT = 30000;
@@ -107,10 +108,6 @@ const appSidebar = document.getElementById("app-sidebar");
    STORAGE KEYS
    ========================================================= */
 
-const ACCOUNT_KEY = "catchphish_demo_account";
-const SESSION_KEY = "catchphish_session";
-
-
 /* =========================================================
    AUTHENTICATION HELPERS
    ========================================================= */
@@ -128,45 +125,6 @@ function clearAuthMessage() {
 
     authMessage.textContent = "";
     authMessage.hidden = true;
-}
-
-function getSavedAccount() {
-    try {
-        const account = localStorage.getItem(ACCOUNT_KEY);
-        return account ? JSON.parse(account) : null;
-    } catch {
-        return null;
-    }
-}
-
-function getSession() {
-    try {
-        const persistent = localStorage.getItem(SESSION_KEY);
-
-        if (persistent) {
-            return JSON.parse(persistent);
-        }
-
-        const temporary = sessionStorage.getItem(SESSION_KEY);
-
-        return temporary ? JSON.parse(temporary) : null;
-    } catch {
-        return null;
-    }
-}
-
-function saveSession(account, persistent = false) {
-    const session = {
-        name: account.name || account.email,
-        email: account.email
-    };
-
-    localStorage.removeItem(SESSION_KEY);
-    sessionStorage.removeItem(SESSION_KEY);
-
-    const storage = persistent ? localStorage : sessionStorage;
-
-    storage.setItem(SESSION_KEY, JSON.stringify(session));
 }
 
 function showDashboard(session) {
@@ -295,11 +253,31 @@ if (togglePassword && authPassword) {
     });
 }
 
+async function requestAuth(path, payload = null) {
+    const response = await fetch(`${AUTH_API_URL}/${path}`, {
+        method: "POST",
+        credentials: "include",
+        headers: {
+            "Content-Type": "application/json",
+            Accept: "application/json"
+        },
+        body: payload ? JSON.stringify(payload) : undefined
+    });
+
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+        throw new Error(typeof data.detail === "string" ? data.detail : "Authentication request failed.");
+    }
+    return data;
+}
+
 if (authForm) {
-    authForm.addEventListener("submit", (event) => {
+    authForm.addEventListener("submit", async (event) => {
         event.preventDefault();
 
         clearAuthMessage();
+
+        const submitButton = document.getElementById("auth-submit");
 
         const email = authEmail.value.trim().toLowerCase();
         const password = authPassword.value;
@@ -334,56 +312,28 @@ if (authForm) {
                 return;
             }
 
-            const existingAccount = getSavedAccount();
-
-            if (existingAccount && existingAccount.email === email) {
-                showAuthMessage(
-                    "An account with this email already exists. Sign in instead."
-                );
-                return;
-            }
-
-            // Demo-only storage. Not suitable for real authentication.
-            const account = {
-                name,
-                email,
-                password
-            };
-
+            if (submitButton) submitButton.disabled = true;
             try {
-                localStorage.setItem(
-                    ACCOUNT_KEY,
-                    JSON.stringify(account)
-                );
-            } catch {
-                showAuthMessage(
-                    "Could not save the demo account in this browser."
-                );
-                return;
+                const data = await requestAuth("signup", { name, email, password });
+                showDashboard(data.user);
+            } catch (error) {
+                showAuthMessage(error.message || "Could not create your account.");
+            } finally {
+                if (submitButton) submitButton.disabled = false;
             }
 
-            saveSession(account, Boolean(rememberMe?.checked));
-            showDashboard(account);
-
             return;
         }
 
-        const account = getSavedAccount();
-
-        if (!account) {
-            showAuthMessage(
-                "No demo account found. Create an account first."
-            );
-            return;
+        if (submitButton) submitButton.disabled = true;
+        try {
+            const data = await requestAuth("login", { email, password });
+            showDashboard(data.user);
+        } catch (error) {
+            showAuthMessage(error.message || "Could not sign in.");
+        } finally {
+            if (submitButton) submitButton.disabled = false;
         }
-
-        if (account.email !== email || account.password !== password) {
-            showAuthMessage("Incorrect email or password.");
-            return;
-        }
-
-        saveSession(account, Boolean(rememberMe?.checked));
-        showDashboard(account);
     });
 }
 
@@ -404,10 +354,16 @@ if (forgotPassword) {
    ========================================================= */
 
 if (logoutBtn) {
-    logoutBtn.addEventListener("click", () => {
-        localStorage.removeItem(SESSION_KEY);
-        sessionStorage.removeItem(SESSION_KEY);
-
+    logoutBtn.addEventListener("click", async () => {
+        try {
+            await fetch(`${AUTH_API_URL}/logout`, {
+                method: "POST",
+                credentials: "include",
+                headers: { Accept: "application/json" }
+            });
+        } catch {
+            // Clear the UI locally even if the network is unavailable.
+        }
         if (input) {
             input.value = "";
         }
@@ -1226,6 +1182,7 @@ async function analyzeContent(content, imageFile = null) {
             ? {
                 method: "POST",
                 body: (() => { const data = new FormData(); data.append("file", imageFile); return data; })(),
+                credentials: "include",
                 signal: controller.signal
             }
             : {
@@ -1235,6 +1192,7 @@ async function analyzeContent(content, imageFile = null) {
                     Accept: "application/json"
                 },
                 body: JSON.stringify({ content, scan_type: scanType?.value || "auto" }),
+                credentials: "include",
                 signal: controller.signal
             };
 
@@ -1463,17 +1421,21 @@ window.addEventListener("resize", () => {
    INITIALIZATION
    ========================================================= */
 
-function initializeApp() {
+async function initializeApp() {
     updateCharacterCount();
     clearError();
 
     setAuthMode("login");
 
-    const session = getSession();
-
-    if (session && session.email) {
-        showDashboard(session);
-    } else {
+    try {
+        const response = await fetch(`${AUTH_API_URL}/me`, {
+            credentials: "include",
+            headers: { Accept: "application/json" }
+        });
+        const data = await response.json().catch(() => ({}));
+        if (response.ok && data.user?.email) showDashboard(data.user);
+        else showLoginScreen();
+    } catch {
         showLoginScreen();
     }
 
