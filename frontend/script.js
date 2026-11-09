@@ -16,6 +16,7 @@ const REQUEST_TIMEOUT = 30000;
 
 let isAnalyzing = false;
 let authMode = "login";
+let selectedImageFile = null;
 
 
 /* =========================================================
@@ -1314,6 +1315,7 @@ if (input) {
 if (imageInput) {
     imageInput.addEventListener("change", () => {
         const file = imageInput.files?.[0];
+        selectedImageFile = file || null;
         if (imageName) imageName.textContent = file ? `${file.name} selected` : "No image selected";
         clearError();
     });
@@ -1326,7 +1328,7 @@ if (form) {
         if (isAnalyzing) return;
 
         const content = input.value.trim();
-        const imageFile = imageInput?.files?.[0] || null;
+        const imageFile = selectedImageFile || imageInput?.files?.[0] || null;
 
         clearError();
 
@@ -1374,6 +1376,7 @@ if (clearBtn) {
         }
 
         if (imageInput) imageInput.value = "";
+        selectedImageFile = null;
         if (imageName) imageName.textContent = "No image selected";
 
         updateCharacterCount();
