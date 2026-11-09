@@ -24,6 +24,9 @@ CatchPhish is a web-based phishing detection platform designed to help users ana
 - **Detection Details** – Understand the suspicious indicators identified during analysis.
 - **Plain-Language Explanations** – Understand what is happening, how it could affect you, and what actions to take.
 - **Potential Impact** – Review possible consequences of suspicious content.
+- **Secure User Authentication** – Sign up and sign in with protected password handling and session-based access.
+- **Scan History Persistence** – Save analyzed results to Supabase for authenticated users while keeping detection available if persistence is unavailable.
+- **URLScan.io Integration** – Submit detected URLs for additional reputation and verdict checks through URLScan.io.
 - **Responsive Interface** – Access the platform through a simple, responsive web interface.
 - **Online Deployment** – Frontend and backend hosted on Render.
 
@@ -34,6 +37,9 @@ CatchPhish is a web-based phishing detection platform designed to help users ana
 | Frontend | HTML, CSS, JavaScript |
 | Backend | Python, FastAPI |
 | API Communication | REST API |
+| Authentication and Sessions | FastAPI sessions, password hashing |
+| Persistence | SQLite, Supabase |
+| URL Reputation | URLScan.io API |
 | Deployment | Render |
 
 ## Project Team
